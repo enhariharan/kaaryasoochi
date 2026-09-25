@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Hariharan Narayanan
+
+# Keep builds from saturating the machine: `dx` compiles server and client at
+# the same time, so effective parallelism is roughly double this number.
+[build]
+jobs = 4
+
+# lld links faster and with far less memory than the default GNU ld.
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]

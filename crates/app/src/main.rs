@@ -31,6 +31,10 @@ enum Route {
 }
 
 fn main() {
+    // Desktop/mobile clients have no same-origin server, so point them at one.
+    // Read at build time: `KAARYASOOCHI_SERVER_URL=https://host:port dx build ...`.
+    #[cfg(not(any(feature = "web", feature = "server")))]
+    dioxus::fullstack::set_server_url(option_env!("KAARYASOOCHI_SERVER_URL").unwrap_or("http://127.0.0.1:8080"));
     dioxus::launch(App);
 }
 

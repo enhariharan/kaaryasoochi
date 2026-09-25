@@ -16,3 +16,12 @@ serde = { version = "1", features = ["derive"] }
 thiserror = "2"
 kaaryasoochi-core = { path = "crates/core" }
 kaaryasoochi-db = { path = "crates/db" }
+
+# Lighter release builds: no LTO and no debuginfo keep peak RAM and link time low.
+# Trade-off: slightly larger/slower binaries than `lto = "thin"`.
+[profile.release]
+opt-level = 2
+lto = false
+codegen-units = 16
+debug = false
+strip = "symbols"
