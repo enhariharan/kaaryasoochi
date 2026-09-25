@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: BSD-3-Clause
-// Copyright (c) 2026, Hariharan Narayanan
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Hariharan Narayanan
 
 //! Server-only plumbing: the shared DB handle, the background scheduler and error mapping.
 

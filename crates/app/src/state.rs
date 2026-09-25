@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: BSD-3-Clause
-// Copyright (c) 2026, Hariharan Narayanan
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Hariharan Narayanan
 
 //! App-wide client state, provided as context by `App` and read by every page.
 

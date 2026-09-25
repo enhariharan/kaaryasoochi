@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: BSD-3-Clause
-// Copyright (c) 2026, Hariharan Narayanan
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Hariharan Narayanan
 
 //! Server functions: the only surface the UI uses to reach the backend.
 //! Every function except `register`/`login` takes the session token.

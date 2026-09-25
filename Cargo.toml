@@ -1,5 +1,5 @@
-# SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2026, Hariharan Narayanan
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Hariharan Narayanan
 
 [workspace]
 resolver = "2"
@@ -8,7 +8,7 @@ members = ["crates/core", "crates/db", "crates/app"]
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-license = "BSD-3-Clause"
+license = "MIT"
 
 [workspace.dependencies]
 chrono = { version = "0.4", default-features = false, features = ["std", "clock", "serde"] }
