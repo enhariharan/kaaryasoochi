@@ -1,0 +1,50 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  DX_VERSION: "0.7.9"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal -c rustfmt -c clippy -t wasm32-unknown-unknown
+          rustup default stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --features kaaryasoochi-app/server -- -D warnings
+      - run: cargo test --workspace
+      - run: cargo check -p kaaryasoochi-app --target wasm32-unknown-unknown --features web
+
+  bundle:
+    needs: check
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal -t wasm32-unknown-unknown
+          rustup default stable
+      - name: Install dx
+        run: cargo install dioxus-cli --version "$DX_VERSION" --locked
+      - name: Bundle web
+        working-directory: crates/app
+        run: dx bundle --web --release
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kaaryasoochi-web
+          path: target/dx/kaaryasoochi-app/release/web

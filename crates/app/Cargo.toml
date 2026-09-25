@@ -1,0 +1,22 @@
+[package]
+name = "kaaryasoochi-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kaaryasoochi-core.workspace = true
+chrono.workspace = true
+serde.workspace = true
+dioxus = { version = "=0.7.9", features = ["fullstack", "router"] }
+
+# server-only
+kaaryasoochi-db = { workspace = true, optional = true }
+tokio = { version = "1", features = ["time", "sync"], optional = true }
+
+[features]
+default = []
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
+server = ["dioxus/server", "dep:kaaryasoochi-db", "dep:tokio"]

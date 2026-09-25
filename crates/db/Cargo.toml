@@ -1,0 +1,20 @@
+[package]
+name = "kaaryasoochi-db"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kaaryasoochi-core.workspace = true
+chrono.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+sea-orm = { version = "1.1", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "with-chrono"] }
+sea-orm-migration = { version = "1.1", features = ["sqlx-sqlite", "runtime-tokio-rustls"] }
+argon2 = { version = "0.5", features = ["std"] }
+sha2 = "0.10"
+async-trait = "0.1"
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt"] }
