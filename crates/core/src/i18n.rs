@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, Hariharan Narayanan
+
 //! Static-text translations. One table row per key; columns are
 //! `[English, Tamil, Malayalam, Telugu, Hindi]` in `Language::ALL` order.
 //! A test guarantees no cell is empty, so adding a key forces all translations.

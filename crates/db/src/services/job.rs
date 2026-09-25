@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, Hariharan Narayanan
+
 use chrono::{DateTime, Duration, Utc};
 use kaaryasoochi_core::dto::JobView;
 use kaaryasoochi_core::{JobInput, Repeat};

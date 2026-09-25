@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, Hariharan Narayanan
+
 use chrono::{DateTime, Datelike, Days, Duration, Months, NaiveDate, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 

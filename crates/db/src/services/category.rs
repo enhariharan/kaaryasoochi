@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, Hariharan Narayanan
+
 use kaaryasoochi_core::dto::CategoryView;
 use kaaryasoochi_core::limits::CATEGORY_MAX;
 use kaaryasoochi_core::{ValidationError, DEFAULT_CATEGORY};

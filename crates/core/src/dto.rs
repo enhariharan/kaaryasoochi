@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, Hariharan Narayanan
+
 //! Wire types shared between server functions and the UI.
 
 use chrono::{DateTime, Utc};

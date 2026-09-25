@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: BSD-3-Clause
+     Copyright (c) 2026, Hariharan Narayanan -->
+
 # AGENTS.md
 
 Guidance for AI agents and contributors. `CLAUDE.md` just points here.
@@ -25,6 +28,9 @@ Kaaryasoochi: cron-job scheduler/manager. Rust workspace, Dioxus 0.7 fullstack, 
 - Times are stored and transported as UTC; conversion to local happens in the UI (`state.rs`).
 - In `rsx!`, use `{expr}` for anything non-trivial. Escaped quotes inside `"{...}"` strings do not parse.
 - Server errors: user-facing `DbError`s pass through; DB/internal errors are masked in `backend::err`.
+
+## Licensing
+BSD-3-Clause. Every source, config, script and doc file starts with the two-line SPDX header (see any `.rs` file). Add it to new files. `LICENSE`, `Cargo.lock` and `.gitignore` are exempt.
 
 ## Git
 Remotes are `gitea` and `github` (no `origin`). Do not push without being asked.

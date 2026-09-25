@@ -1,6 +1,11 @@
+<!-- SPDX-License-Identifier: BSD-3-Clause
+     Copyright (c) 2026, Hariharan Narayanan -->
+
 # Kaaryasoochi
 
 *Kaarya* (job) + *Soochi* (list): a multi-platform app to schedule and manage cron-style jobs.
+
+Licensed under BSD-3-Clause (see [LICENSE](LICENSE)).
 
 Rust · [Dioxus](https://dioxuslabs.com) 0.7 (fullstack) · SQLite via [SeaORM](https://www.sea-ql.org/SeaORM/)
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, Hariharan Narayanan
+
 //! Field length limits (in Unicode characters, not bytes).
 
 pub const TITLE_MAX: usize = 100;

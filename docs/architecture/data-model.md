@@ -1,3 +1,6 @@
+<!-- SPDX-License-Identifier: BSD-3-Clause
+     Copyright (c) 2026, Hariharan Narayanan -->
+
 # Data model
 
 SQLite, created by `crates/db/src/migration`. Foreign keys are enforced (`PRAGMA foreign_keys = ON` in `connect`) and cascade on delete. All timestamps are UTC.

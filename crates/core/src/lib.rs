@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, Hariharan Narayanan
+
 //! Pure domain logic shared by the server and every UI target.
 //! No I/O, no database, no UI: everything here is unit-testable.
 

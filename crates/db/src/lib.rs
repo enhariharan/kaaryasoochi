@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, Hariharan Narayanan
+
 //! Persistence and business services on top of SQLite (SeaORM).
 
 pub mod entity;

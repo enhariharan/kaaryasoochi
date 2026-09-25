@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, Hariharan Narayanan
+
 use kaaryasoochi_core::dto::UserSettings;
 use kaaryasoochi_core::limits::PAGE_SIZE_OPTIONS;
 use kaaryasoochi_core::{DateFormat, Language, Layout, TabOrientation, Theme, TimeFormat};

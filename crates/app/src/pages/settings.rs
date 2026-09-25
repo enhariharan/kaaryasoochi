@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, Hariharan Narayanan
+
 use dioxus::prelude::*;
 use kaaryasoochi_core::dto::UserSettings;
 use kaaryasoochi_core::limits::{FULL_NAME_MAX, PAGE_SIZE_OPTIONS, PASSWORD_MAX, PASSWORD_MIN};
