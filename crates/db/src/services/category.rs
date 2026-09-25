@@ -53,7 +53,8 @@ pub(crate) async fn get_or_create(
     .await?)
 }
 
-/// `Default` first, then alphabetical.
+/// Alphabetical, with `Default` always last (so it is the far end of the dashboard tab strip:
+/// right-most in left-to-right languages, left-most in right-to-left ones).
 pub async fn list(db: &impl ConnectionTrait, user_id: i32) -> DbResult<Vec<CategoryView>> {
     let mut v: Vec<_> = category::Entity::find()
         .filter(category::Column::UserId.eq(user_id))
@@ -63,7 +64,7 @@ pub async fn list(db: &impl ConnectionTrait, user_id: i32) -> DbResult<Vec<Categ
         .into_iter()
         .map(view)
         .collect();
-    v.sort_by_key(|c| c.name != DEFAULT_CATEGORY); // stable: keeps alphabetical within groups
+    v.sort_by_key(|c| c.name == DEFAULT_CATEGORY); // false < true, and the sort is stable
     Ok(v)
 }
 

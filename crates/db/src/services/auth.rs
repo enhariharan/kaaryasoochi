@@ -8,7 +8,7 @@ use argon2::Argon2;
 use chrono::{Duration, Utc};
 use kaaryasoochi_core::dto::UserView;
 use kaaryasoochi_core::validation::{validate_full_name, validate_password, validate_username};
-use sea_orm::{prelude::*, ActiveValue::Set, TransactionTrait};
+use sea_orm::{prelude::*, ActiveValue::Set, PaginatorTrait, TransactionTrait};
 use sha2::{Digest, Sha256};
 
 use crate::entity::{session, user};
@@ -40,6 +40,7 @@ fn view(u: &user::Model) -> UserView {
         id: u.id,
         username: u.username.clone(),
         full_name: u.full_name.clone(),
+        is_admin: u.is_admin,
     }
 }
 
@@ -64,7 +65,10 @@ pub async fn register(
     {
         return Err(DbError::UsernameTaken);
     }
+    // The very first account becomes the administrator.
+    let is_admin = user::Entity::find().count(&tx).await? == 0;
     let u = user::ActiveModel {
+        is_admin: Set(is_admin),
         username: Set(username),
         full_name: Set(full_name),
         password_hash: Set(password_hash),

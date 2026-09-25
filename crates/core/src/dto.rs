@@ -6,13 +6,15 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::{DateFormat, Language, Layout, Repeat, TabOrientation, Theme, TimeFormat};
+use crate::{DateFormat, Language, Layout, Repeat, RunMode, TabOrientation, Theme, TimeFormat};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UserView {
     pub id: i32,
     pub username: String,
     pub full_name: String,
+    /// Administrators may attach shell commands to jobs.
+    pub is_admin: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -31,6 +33,22 @@ pub struct JobView {
     pub first_run: DateTime<Utc>,
     pub repeat: Option<Repeat>,
     pub next_run: Option<DateTime<Utc>>,
+    pub run_mode: RunMode,
+    pub command: String,
+    pub script_path: String,
+    pub script_args: String,
+    pub working_dir: String,
+    pub timeout_secs: u32,
+    pub notify_on_failure: bool,
+    pub retry_on_failure: bool,
+    pub retry_count: u32,
+    pub retry_delay_secs: u32,
+    /// When the next automatic retry is due, if one is pending.
+    pub retry_at: Option<DateTime<Utc>>,
+    /// Outcome of the most recent run, for the failed/ok badge.
+    pub last_run: Option<LastRun>,
+    /// IANA zone the job's calendar rules are evaluated in (fixed when the job is saved).
+    pub timezone: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -64,6 +82,9 @@ pub struct RunView {
     pub started_at: DateTime<Utc>,
     pub finished_at: Option<DateTime<Utc>>,
     pub status: RunStatus,
+    pub exit_code: Option<i32>,
+    /// 1 for the scheduled run, 2.. for automatic retries of it.
+    pub attempt: u32,
     pub message: String,
 }
 
@@ -90,6 +111,8 @@ pub struct UserSettings {
     pub time_format: TimeFormat,
     pub page_size: u32,
     pub language: Language,
+    /// `"system"` (follow the device) or an IANA name such as `Asia/Kolkata`.
+    pub timezone: String,
 }
 
 impl Default for UserSettings {
@@ -102,6 +125,51 @@ impl Default for UserSettings {
             time_format: TimeFormat::default(),
             page_size: crate::limits::PAGE_SIZE_DEFAULT,
             language: Language::default(),
+            timezone: crate::timezone::SYSTEM.to_owned(),
         }
     }
+}
+
+/// Lightweight view of a job's latest run.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LastRun {
+    pub status: RunStatus,
+    pub started_at: DateTime<Utc>,
+    pub exit_code: Option<i32>,
+}
+
+/// Header info for the folded run-history section.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RunSummary {
+    pub total: u64,
+    pub last: Option<RunView>,
+    /// When the next automatic retry is due, if one is pending.
+    pub retry_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FsEntry {
+    pub name: String,
+    pub is_dir: bool,
+    pub is_executable: bool,
+    pub size: u64,
+}
+
+/// A directory listing for the server-side file browser.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DirListing {
+    /// Canonical absolute path of the directory listed.
+    pub path: String,
+    pub parent: Option<String>,
+    pub entries: Vec<FsEntry>,
+    /// True when the listing was cut off at the entry limit.
+    pub truncated: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FileInfo {
+    pub exists: bool,
+    pub is_file: bool,
+    pub is_dir: bool,
+    pub is_executable: bool,
 }

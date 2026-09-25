@@ -3,7 +3,7 @@
 
 use dioxus::prelude::*;
 
-use super::{clean_err, ErrorBanner};
+use super::{clean_err, ErrorBanner, PasswordField};
 use crate::state::{app_state, persist_token, t};
 use crate::{api, Route};
 
@@ -11,7 +11,7 @@ use crate::{api, Route};
 pub fn Login() -> Element {
     let mut s = app_state();
     let nav = use_navigator();
-    let (mut username, mut password) = (use_signal(String::new), use_signal(String::new));
+    let (mut username, password) = (use_signal(String::new), use_signal(String::new));
     let mut error = use_signal(|| None::<String>);
     let mut busy = use_signal(|| false);
 
@@ -49,8 +49,7 @@ pub fn Login() -> Element {
             form { onsubmit: submit,
                 label { {t("auth.username")}
                     input { r#type: "text", autocomplete: "username", required: true, value: "{username}", oninput: move |e| username.set(e.value()) } }
-                label { {t("auth.password")}
-                    input { r#type: "password", autocomplete: "current-password", required: true, value: "{password}", oninput: move |e| password.set(e.value()) } }
+                PasswordField { label: "auth.password", value: password, autocomplete: "current-password" }
                 ErrorBanner { msg: error }
                 button { class: "primary", disabled: busy(), r#type: "submit", {t("auth.login")} }
             }
@@ -63,7 +62,7 @@ pub fn Login() -> Element {
 #[component]
 pub fn Register() -> Element {
     let nav = use_navigator();
-    let (mut full_name, mut username, mut password) = (
+    let (mut full_name, mut username, password) = (
         use_signal(String::new),
         use_signal(String::new),
         use_signal(String::new),
@@ -93,8 +92,7 @@ pub fn Register() -> Element {
                     input { r#type: "text", autocomplete: "name", maxlength: 100, value: "{full_name}", oninput: move |e| full_name.set(e.value()) } }
                 label { {t("auth.username")}
                     input { r#type: "text", autocomplete: "username", required: true, minlength: 3, maxlength: 32, value: "{username}", oninput: move |e| username.set(e.value()) } }
-                label { {t("auth.password")}
-                    input { r#type: "password", autocomplete: "new-password", required: true, minlength: 10, maxlength: 128, value: "{password}", oninput: move |e| password.set(e.value()) } }
+                PasswordField { label: "auth.password", value: password, autocomplete: "new-password", minlength: 10, maxlength: 128 }
                 ErrorBanner { msg: error }
                 button { class: "primary", disabled: busy(), r#type: "submit", {t("auth.register")} }
             }

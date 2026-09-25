@@ -15,7 +15,7 @@ dioxus = { version = "=0.7.9", features = ["fullstack", "router"] }
 
 # server-only
 kaaryasoochi-db = { workspace = true, optional = true }
-tokio = { version = "1", features = ["time", "sync"], optional = true }
+tokio = { version = "1", features = ["time", "sync", "process", "rt"], optional = true }
 
 [features]
 default = []

@@ -15,6 +15,10 @@ pub struct Model {
     pub time_format: String,
     pub page_size: i32,
     pub language: String,
+    /// `system` or an IANA name.
+    pub timezone: String,
+    /// Last time zone reported by the user's device; used when `timezone` is `system`.
+    pub system_timezone: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

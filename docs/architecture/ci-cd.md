@@ -13,7 +13,7 @@ Runs on push and pull request to `main`, on an `act_runner` with a label matchin
 
 1. `cargo fmt --all --check`
 2. `cargo clippy --workspace --all-targets --features server -D warnings`
-3. `cargo test --workspace`
+3. `cargo test --workspace --features kaaryasoochi-app/server` (the feature enables the executor tests, which spawn real `/bin/sh` processes)
 4. `cargo check` for the wasm client (`--target wasm32-unknown-unknown --features web`)
 5. On `main` only: `dx bundle --web --release`, uploaded as an artifact
 

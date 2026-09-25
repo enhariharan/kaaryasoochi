@@ -17,7 +17,9 @@ sea-orm-migration = { version = "1.1", features = ["sqlx-sqlite", "runtime-tokio
 argon2 = { version = "0.5", features = ["std"] }
 sha2 = "0.10"
 async-trait = "0.1"
+iana-time-zone = "0.1"
 uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
+chrono-tz = { version = "0.10", default-features = false }
 tokio = { version = "1", features = ["macros", "rt"] }

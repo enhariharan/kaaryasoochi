@@ -15,6 +15,8 @@ pub enum DbError {
     InvalidCredentials,
     #[error("not authenticated")]
     Unauthenticated,
+    #[error("this job is already running")]
+    AlreadyRunning,
     #[error("not found")]
     NotFound,
     #[error("the Default category cannot be renamed or deleted")]

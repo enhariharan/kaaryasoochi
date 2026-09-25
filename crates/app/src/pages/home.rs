@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Hariharan Narayanan
 
 use dioxus::prelude::*;
-use kaaryasoochi_core::dto::JobView;
+use kaaryasoochi_core::dto::{JobView, RunStatus};
 use kaaryasoochi_core::{Layout, TabOrientation, DEFAULT_CATEGORY};
 
 use crate::state::{app_state, fmt_datetime, t, token};
@@ -14,6 +14,15 @@ pub fn Home() -> Element {
     let categories = use_resource(move || async move { api::list_categories(token()).await });
     let jobs = use_resource(move || async move { api::list_jobs(token()).await });
     let mut selected = use_signal(|| DEFAULT_CATEGORY.to_string());
+    // `Default` is the last tab, so with many categories it can start out of view: keep the
+    // active tab visible when the tabs load or the selection changes.
+    use_effect(move || {
+        selected();
+        categories.read();
+        let _ = document::eval(
+            "document.querySelector('.tab.active')?.scrollIntoView({block:'nearest',inline:'nearest'})",
+        );
+    });
 
     let cfg = s.settings.read().clone();
     let (Some(Ok(cats)), Some(Ok(all))) = (&*categories.read(), &*jobs.read()) else {
@@ -40,7 +49,7 @@ pub fn Home() -> Element {
                         key: "{c.id}", role: "tab", class: if c.name == selected() { "tab active" } else { "tab" },
                         "aria-selected": c.name == selected(),
                         onclick: { let n = c.name.clone(); move |_| selected.set(n.clone()) },
-                        "{c.name}"
+                        span { dir: "auto", "{c.name}" }
                         span { class: "count", "{all.iter().filter(|j| j.category == c.name).count()}" }
                     }
                 }
@@ -50,9 +59,15 @@ pub fn Home() -> Element {
                 div { class: "{layout}",
                     for j in visible {
                         Link { key: "{j.id}", to: Route::JobEdit { id: j.id }, class: "job-card",
-                            h3 { "{j.title}" }
-                            if !j.summary.is_empty() { p { "{j.summary}" } }
-                            if let Some(n) = j.next_run { small { class: "muted", "{fmt_datetime(n)}" } }
+                            h3 {
+                                span { dir: "auto", "{j.title}" }
+                                if let Some(r) = &j.last_run {
+                                    span { class: "status {r.status.as_str()} badge", title: "{fmt_datetime(r.started_at)}",
+                                        {match r.status { RunStatus::Success => "✓", RunStatus::Failed => "✗", RunStatus::Running => "…" }} }
+                                }
+                            }
+                            if !j.summary.is_empty() { p { dir: "auto", "{j.summary}" } }
+                            if let Some(n) = j.next_run { small { class: "muted", bdi { dir: "ltr", "{fmt_datetime(n)}" } } }
                         }
                     }
                 }

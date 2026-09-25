@@ -11,7 +11,7 @@
 │   ├── core/src/
 │   │   ├── lib.rs
 │   │   ├── dto.rs            wire types shared by server fns and UI
-│   │   ├── i18n.rs           translation table
+│   │   ├── i18n.rs           locale loader + tests (strings live in ../locales/<code>.txt)
 │   │   ├── limits.rs         field limits
 │   │   ├── recurrence.rs     Repeat + next-run computation
 │   │   ├── settings.rs       Theme/Layout/TabOrientation/DateFormat/TimeFormat

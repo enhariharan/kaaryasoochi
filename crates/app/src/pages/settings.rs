@@ -4,9 +4,10 @@
 use dioxus::prelude::*;
 use kaaryasoochi_core::dto::UserSettings;
 use kaaryasoochi_core::limits::{FULL_NAME_MAX, PAGE_SIZE_OPTIONS, PASSWORD_MAX, PASSWORD_MIN};
+use kaaryasoochi_core::timezone;
 use kaaryasoochi_core::{DateFormat, Language, Layout, TabOrientation, Theme, TimeFormat};
 
-use super::{clean_err, ErrorBanner};
+use super::{clean_err, ErrorBanner, PasswordField, Pick};
 use crate::api;
 use crate::state::{app_state, t, token};
 
@@ -23,8 +24,8 @@ fn date_label(v: DateFormat) -> String {
 
 fn time_label(v: TimeFormat) -> &'static str {
     match v.pattern() {
-        Some(p) if p.contains("%p") => "12-hour",
-        Some(_) => "24-hour",
+        Some(p) if p.contains("%p") => t("settings.time_12h"),
+        Some(_) => t("settings.time_24h"),
         None => t("settings.system_default"),
     }
 }
@@ -47,11 +48,29 @@ fn save(mut settings: Signal<UserSettings>, next: UserSettings, mut error: Signa
     });
 }
 
+fn opts<T: Copy>(
+    all: &[T],
+    value: impl Fn(T) -> String,
+    label: impl Fn(T) -> String,
+) -> Vec<(String, String)> {
+    all.iter().map(|v| (value(*v), label(*v))).collect()
+}
+
 #[component]
 pub fn Settings() -> Element {
     let s = app_state();
     let error = use_signal(|| None::<String>);
     let cfg = s.settings.read().clone();
+
+    let mut timezones = vec![(
+        timezone::SYSTEM.to_string(),
+        format!("{} ({})", t("settings.system_default"), s.system_tz.read()),
+    )];
+    timezones.extend(timezone::all_names().map(|n| (n.to_string(), n.to_string())));
+    let sizes: Vec<(String, String)> = PAGE_SIZE_OPTIONS
+        .iter()
+        .map(|v| (v.to_string(), v.to_string()))
+        .collect();
 
     rsx! {
         section { class: "card",
@@ -59,35 +78,42 @@ pub fn Settings() -> Element {
             ErrorBanner { msg: error }
             div { class: "settings-grid",
                 label { {t("settings.theme")}
-                    select { onchange: { let cfg = cfg.clone(); move |e: FormEvent| save(s.settings, UserSettings { theme: Theme::parse(&e.value()), ..cfg.clone() }, error) },
-                        for v in Theme::ALL { option { key: "{v.as_str()}", value: v.as_str(), selected: *v == cfg.theme, {t(&format!("settings.theme.{}", v.as_str()))} } } } }
+                    Pick { id: "set-theme", value: cfg.theme.as_str().to_string(),
+                        options: opts(Theme::ALL, |v| v.as_str().into(), |v| t(&format!("settings.theme.{}", v.as_str())).into()),
+                        onchange: { let cfg = cfg.clone(); move |v: String| save(s.settings, UserSettings { theme: Theme::parse(&v), ..cfg.clone() }, error) } } }
                 label { {t("settings.language")}
-                    select { onchange: { let cfg = cfg.clone(); move |e: FormEvent| save(s.settings, UserSettings { language: Language::parse(&e.value()), ..cfg.clone() }, error) },
-                        for v in Language::ALL { option { key: "{v.code()}", value: v.code(), selected: v == cfg.language, "{v.native_name()}" } } } }
+                    Pick { id: "set-language", value: cfg.language.code().to_string(),
+                        options: opts(&Language::ALL, |v| v.code().into(), |v| v.native_name().into()),
+                        onchange: { let cfg = cfg.clone(); move |v: String| save(s.settings, UserSettings { language: Language::parse(&v), ..cfg.clone() }, error) } } }
+                label { {t("settings.timezone")}
+                    Pick { id: "set-timezone", value: cfg.timezone.clone(), options: timezones,
+                        onchange: { let cfg = cfg.clone(); move |v: String| save(s.settings, UserSettings { timezone: v, ..cfg.clone() }, error) } } }
                 label { {t("settings.tab_orientation")}
-                    select { onchange: { let cfg = cfg.clone(); move |e: FormEvent| save(s.settings, UserSettings { tab_orientation: TabOrientation::parse(&e.value()), ..cfg.clone() }, error) },
-                        for v in TabOrientation::ALL { option { key: "{v.as_str()}", value: v.as_str(), selected: *v == cfg.tab_orientation, {t(&format!("settings.{}", v.as_str()))} } } } }
+                    Pick { id: "set-tabs", value: cfg.tab_orientation.as_str().to_string(),
+                        options: opts(TabOrientation::ALL, |v| v.as_str().into(), |v| t(&format!("settings.{}", v.as_str())).into()),
+                        onchange: { let cfg = cfg.clone(); move |v: String| save(s.settings, UserSettings { tab_orientation: TabOrientation::parse(&v), ..cfg.clone() }, error) } } }
                 label { {t("settings.job_layout")}
-                    select { onchange: { let cfg = cfg.clone(); move |e: FormEvent| save(s.settings, UserSettings { job_layout: Layout::parse(&e.value()), ..cfg.clone() }, error) },
-                        for v in Layout::ALL { option { key: "{v.as_str()}", value: v.as_str(), selected: *v == cfg.job_layout, {t(&format!("settings.{}", v.as_str()))} } } } }
+                    Pick { id: "set-layout", value: cfg.job_layout.as_str().to_string(),
+                        options: opts(Layout::ALL, |v| v.as_str().into(), |v| t(&format!("settings.{}", v.as_str())).into()),
+                        onchange: { let cfg = cfg.clone(); move |v: String| save(s.settings, UserSettings { job_layout: Layout::parse(&v), ..cfg.clone() }, error) } } }
                 label { {t("settings.date_format")}
-                    select { onchange: { let cfg = cfg.clone(); move |e: FormEvent| save(s.settings, UserSettings { date_format: DateFormat::parse(&e.value()), ..cfg.clone() }, error) },
-                        for v in DateFormat::ALL { option { key: "{v.as_str()}", value: v.as_str(), selected: *v == cfg.date_format,
-                            {date_label(*v)} } } } }
+                    Pick { id: "set-date", value: cfg.date_format.as_str().to_string(),
+                        options: opts(DateFormat::ALL, |v| v.as_str().into(), date_label),
+                        onchange: { let cfg = cfg.clone(); move |v: String| save(s.settings, UserSettings { date_format: DateFormat::parse(&v), ..cfg.clone() }, error) } } }
                 label { {t("settings.time_format")}
-                    select { onchange: { let cfg = cfg.clone(); move |e: FormEvent| save(s.settings, UserSettings { time_format: TimeFormat::parse(&e.value()), ..cfg.clone() }, error) },
-                        for v in TimeFormat::ALL { option { key: "{v.as_str()}", value: v.as_str(), selected: *v == cfg.time_format,
-                            {time_label(*v)} } } } }
+                    Pick { id: "set-time", value: cfg.time_format.as_str().to_string(),
+                        options: opts(TimeFormat::ALL, |v| v.as_str().into(), |v| time_label(v).into()),
+                        onchange: { let cfg = cfg.clone(); move |v: String| save(s.settings, UserSettings { time_format: TimeFormat::parse(&v), ..cfg.clone() }, error) } } }
                 label { {t("settings.page_size")}
-                    select { onchange: { let cfg = cfg.clone(); move |e: FormEvent| save(s.settings, UserSettings { page_size: e.value().parse().unwrap_or(cfg.page_size), ..cfg.clone() }, error) },
-                        for v in PAGE_SIZE_OPTIONS { option { key: "{v}", value: "{v}", selected: v == cfg.page_size, "{v}" } } } }
+                    Pick { id: "set-pagesize", value: cfg.page_size.to_string(), options: sizes,
+                        onchange: { let cfg = cfg.clone(); move |v: String| save(s.settings, UserSettings { page_size: v.parse().unwrap_or(cfg.page_size), ..cfg.clone() }, error) } } }
             }
         }
         Profile {}
         ChangePassword {}
         section { class: "card",
             h2 { {t("settings.passkeys")} }
-            p { class: "muted", "Coming soon." }
+            p { class: "muted", {t("common.coming_soon")} }
         }
     }
 }
@@ -107,11 +133,11 @@ fn Profile() -> Element {
             form { onsubmit: move |e| {
                 e.prevent_default();
                 spawn(async move {
-                    msg.set(Some(match api::update_full_name(token(), name()).await { Ok(_) => "Saved".into(), Err(e) => clean_err(e) }));
+                    msg.set(Some(match api::update_full_name(token(), name()).await { Ok(_) => t("common.saved").to_string(), Err(e) => clean_err(e) }));
                 });
             },
                 label { {t("settings.full_name")}
-                    input { r#type: "text", maxlength: FULL_NAME_MAX as i64, value: "{name}", oninput: move |e| name.set(e.value()) } }
+                    input { r#type: "text", dir: "auto", maxlength: FULL_NAME_MAX as i64, value: "{name}", oninput: move |e| name.set(e.value()) } }
                 if let Some(m) = msg() { p { class: "muted", "{m}" } }
                 button { class: "primary", r#type: "submit", {t("common.save")} }
             }
@@ -122,7 +148,7 @@ fn Profile() -> Element {
 #[component]
 fn ChangePassword() -> Element {
     let mut s = app_state();
-    let (mut current, mut new) = (use_signal(String::new), use_signal(String::new));
+    let (current, new) = (use_signal(String::new), use_signal(String::new));
     let mut msg = use_signal(|| None::<String>);
     rsx! {
         section { class: "card",
@@ -137,10 +163,9 @@ fn ChangePassword() -> Element {
                     }
                 });
             },
-                label { {t("auth.password")}
-                    input { r#type: "password", autocomplete: "current-password", required: true, value: "{current}", oninput: move |e| current.set(e.value()) } }
-                label { {t("settings.change_password")}
-                    input { r#type: "password", autocomplete: "new-password", required: true, minlength: PASSWORD_MIN as i64, maxlength: PASSWORD_MAX as i64, value: "{new}", oninput: move |e| new.set(e.value()) } }
+                PasswordField { label: "auth.password", value: current, autocomplete: "current-password" }
+                PasswordField { label: "settings.change_password", value: new,
+                    autocomplete: "new-password", minlength: PASSWORD_MIN as i64, maxlength: PASSWORD_MAX as i64 }
                 ErrorBanner { msg }
                 button { class: "primary", r#type: "submit", {t("common.save")} }
             }

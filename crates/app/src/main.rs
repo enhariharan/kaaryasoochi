@@ -4,6 +4,8 @@
 mod api;
 #[cfg(feature = "server")]
 mod backend;
+#[cfg(feature = "server")]
+mod fsbrowse;
 mod pages;
 mod state;
 
@@ -34,7 +36,9 @@ fn main() {
     // Desktop/mobile clients have no same-origin server, so point them at one.
     // Read at build time: `KAARYASOOCHI_SERVER_URL=https://host:port dx build ...`.
     #[cfg(not(any(feature = "web", feature = "server")))]
-    dioxus::fullstack::set_server_url(option_env!("KAARYASOOCHI_SERVER_URL").unwrap_or("http://127.0.0.1:8080"));
+    dioxus::fullstack::set_server_url(
+        option_env!("KAARYASOOCHI_SERVER_URL").unwrap_or("http://127.0.0.1:8080"),
+    );
     dioxus::launch(App);
 }
 
@@ -43,7 +47,7 @@ fn App() -> Element {
     let state = AppState {
         token: use_signal(|| None),
         settings: use_signal(UserSettings::default),
-        utc_offset_min: use_signal(|| 0),
+        system_tz: use_signal(|| "UTC".to_string()),
         system_date: use_signal(Default::default),
         system_time: use_signal(Default::default),
         ready: use_signal(|| false),
@@ -54,7 +58,7 @@ fn App() -> Element {
     use_future(move || async move {
         let mut s = state;
         let loc = state::detect_locale().await;
-        s.utc_offset_min.set(loc.utc_offset_min);
+        s.system_tz.set(loc.timezone);
         s.system_date.set(loc.date);
         s.system_time.set(loc.time);
         if let Some(tok) = state::stored_token().await {
@@ -74,11 +78,23 @@ fn App() -> Element {
         Theme::Dark => "dark",
         Theme::System => "system",
     };
+    // Text direction and language come from the user's language (its locale file declares `@dir`).
+    // <html> gets them too so scrollbars, native pickers and page margins mirror as well.
+    let lang = state.settings.read().language;
+    use_effect(move || {
+        let l = state.settings.read().language;
+        let _ = document::eval(&format!(
+            "document.documentElement.setAttribute('dir','{}');document.documentElement.setAttribute('lang','{}')",
+            l.dir(),
+            l.code()
+        ));
+    });
+
     rsx! {
         document::Title { "Kaaryasoochi" }
         document::Meta { name: "viewport", content: "width=device-width, initial-scale=1" }
         document::Stylesheet { href: asset!("/assets/main.css") }
-        div { class: "app", "data-theme": theme,
+        div { class: "app", "data-theme": theme, dir: lang.dir(), lang: lang.code(),
             if *state.ready.read() { Router::<Route> {} } else { p { class: "muted center", "…" } }
         }
     }
@@ -92,6 +108,15 @@ fn Shell() -> Element {
     use_effect(move || {
         if s.token.read().is_none() {
             nav.replace(Route::Login {});
+        }
+    });
+    // Let the server know the device's zone; it is used while the time-zone setting is "system".
+    use_effect(move || {
+        if let Some(tok) = s.token.read().clone() {
+            let tz = s.system_tz.read().clone();
+            spawn(async move {
+                let _ = api::report_system_timezone(tok, tz).await;
+            });
         }
     });
     if s.token.read().is_none() {

@@ -14,6 +14,9 @@ pub struct Model {
     pub finished_at: Option<DateTimeUtc>,
     /// "running" | "success" | "failed"
     pub status: String,
+    pub exit_code: Option<i32>,
+    /// 1 = the scheduled run, 2.. = automatic retries of it.
+    pub attempt: i32,
     pub message: String,
 }
 

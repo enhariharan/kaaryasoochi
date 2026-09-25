@@ -4,6 +4,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::exec::RunMode;
 use crate::limits::*;
 use crate::recurrence::{Repeat, RepeatError};
 
@@ -21,6 +22,28 @@ pub enum ValidationError {
     SummaryMultiline,
     #[error("description must be at most {DESCRIPTION_MAX} characters")]
     DescriptionTooLong,
+    #[error("command must be at most {COMMAND_MAX} characters")]
+    CommandTooLong,
+    #[error(
+        "script path must be an absolute path on a single line (at most {PATH_MAX} characters)"
+    )]
+    ScriptPath,
+    #[error("script arguments must be on a single line (at most {SCRIPT_ARGS_MAX} characters)")]
+    ScriptArgs,
+    #[error(
+        "working directory must be an absolute path (at most {PATH_MAX} characters), or empty"
+    )]
+    WorkingDir,
+    #[error("retries must be between 1 and {RETRY_COUNT_MAX}")]
+    RetryCount,
+    #[error("retry delay must be between 1 and {RETRY_DELAY_MAX_SECS} seconds")]
+    RetryDelay,
+    #[error("timeout must be between 1 and {TIMEOUT_MAX_SECS} seconds")]
+    Timeout,
+    #[error("unknown time zone")]
+    Timezone,
+    #[error("only administrators can set a command")]
+    CommandForbidden,
     #[error("first run must be in the future")]
     RunInPast,
     #[error("invalid repeat: {0}")]
@@ -51,6 +74,44 @@ pub struct JobInput {
     pub description: String,
     pub first_run: DateTime<Utc>,
     pub repeat: Option<Repeat>,
+    pub run_mode: RunMode,
+    /// Shell command (used when `run_mode` is `Command`). Empty means the run is only recorded.
+    pub command: String,
+    /// Absolute script path and shell-syntax arguments (used when `run_mode` is `Script`).
+    pub script_path: String,
+    pub script_args: String,
+    /// Absolute directory to run in; empty means the user's home.
+    pub working_dir: String,
+    pub timeout_secs: u32,
+    pub notify_on_failure: bool,
+    /// Re-run a failed run up to `retry_count` more times, `retry_delay_secs` apart.
+    pub retry_on_failure: bool,
+    pub retry_count: u32,
+    pub retry_delay_secs: u32,
+}
+
+fn is_abs_single_line(s: &str) -> bool {
+    s.starts_with('/') && !s.contains(['\n', '\r', '\0']) && s.chars().count() <= PATH_MAX
+}
+
+impl JobInput {
+    /// True when the job carries anything to execute.
+    pub fn has_exec(&self) -> bool {
+        match self.run_mode {
+            RunMode::Command => !self.command.is_empty(),
+            RunMode::Script => !self.script_path.is_empty(),
+        }
+    }
+
+    /// The line to hand to `/bin/sh -c` (empty = nothing to run).
+    pub fn shell_line(&self) -> String {
+        crate::exec::shell_line(
+            self.run_mode,
+            &self.command,
+            &self.script_path,
+            &self.script_args,
+        )
+    }
 }
 
 impl JobInput {
@@ -61,6 +122,10 @@ impl JobInput {
         self.category = self.category.trim().to_owned();
         self.summary = self.summary.trim().to_owned();
         self.description = self.description.trim().to_owned();
+        self.command = self.command.trim().to_owned();
+        self.script_path = self.script_path.trim().to_owned();
+        self.script_args = self.script_args.trim().to_owned();
+        self.working_dir = self.working_dir.trim().to_owned();
 
         if self.title.is_empty() {
             return Err(ValidationError::TitleRequired);
@@ -80,7 +145,37 @@ impl JobInput {
         if self.description.chars().count() > DESCRIPTION_MAX {
             return Err(ValidationError::DescriptionTooLong);
         }
-        if self.first_run <= now {
+        if self.command.chars().count() > COMMAND_MAX {
+            return Err(ValidationError::CommandTooLong);
+        }
+        if !self.script_path.is_empty() && !is_abs_single_line(&self.script_path) {
+            return Err(ValidationError::ScriptPath);
+        }
+        if self.run_mode == RunMode::Script
+            && self.script_path.is_empty()
+            && !self.script_args.is_empty()
+        {
+            return Err(ValidationError::ScriptPath);
+        }
+        if self.script_args.contains(['\n', '\r', '\0'])
+            || self.script_args.chars().count() > SCRIPT_ARGS_MAX
+        {
+            return Err(ValidationError::ScriptArgs);
+        }
+        if !self.working_dir.is_empty() && !is_abs_single_line(&self.working_dir) {
+            return Err(ValidationError::WorkingDir);
+        }
+        if !(1..=RETRY_COUNT_MAX).contains(&self.retry_count) {
+            return Err(ValidationError::RetryCount);
+        }
+        if !(1..=RETRY_DELAY_MAX_SECS).contains(&self.retry_delay_secs) {
+            return Err(ValidationError::RetryDelay);
+        }
+        if !(1..=TIMEOUT_MAX_SECS).contains(&self.timeout_secs) {
+            return Err(ValidationError::Timeout);
+        }
+        let is_cron = matches!(self.repeat, Some(Repeat::Cron(_)));
+        if !is_cron && self.first_run <= now {
             return Err(ValidationError::RunInPast);
         }
         if let Some(r) = &self.repeat {
@@ -127,6 +222,16 @@ mod tests {
                 description: "".into(),
                 first_run: now + Duration::hours(1),
                 repeat: None,
+                run_mode: RunMode::Command,
+                command: String::new(),
+                script_path: String::new(),
+                script_args: String::new(),
+                working_dir: String::new(),
+                timeout_secs: TIMEOUT_DEFAULT_SECS,
+                notify_on_failure: true,
+                retry_on_failure: false,
+                retry_count: RETRY_COUNT_DEFAULT,
+                retry_delay_secs: RETRY_DELAY_DEFAULT_SECS,
             },
             now,
         )
@@ -150,6 +255,31 @@ mod tests {
         let (mut i, now) = input();
         i.first_run = now - Duration::seconds(1);
         assert_eq!(i.validate(now), Err(ValidationError::RunInPast));
+        let (mut i, now) = input();
+        i.script_path = "relative/run.sh".into();
+        assert_eq!(i.validate(now), Err(ValidationError::ScriptPath));
+        let (mut i, now) = input();
+        i.working_dir = "~/x".into();
+        assert_eq!(i.validate(now), Err(ValidationError::WorkingDir));
+        let (mut i, now) = input();
+        i.script_args = "a\nb".into();
+        assert_eq!(i.validate(now), Err(ValidationError::ScriptArgs));
+        let (mut i, now) = input();
+        i.repeat = Some(Repeat::Cron("* * * * *".parse().unwrap()));
+        i.first_run = now - chrono::Duration::days(1); // "start from" may already have passed
+        assert!(i.validate(now).is_ok());
+        let (mut i, now) = input();
+        i.retry_count = 0;
+        assert_eq!(i.validate(now), Err(ValidationError::RetryCount));
+        let (mut i, now) = input();
+        i.retry_count = RETRY_COUNT_MAX + 1;
+        assert_eq!(i.validate(now), Err(ValidationError::RetryCount));
+        let (mut i, now) = input();
+        i.retry_delay_secs = 0;
+        assert_eq!(i.validate(now), Err(ValidationError::RetryDelay));
+        let (mut i, now) = input();
+        i.timeout_secs = 0;
+        assert_eq!(i.validate(now), Err(ValidationError::Timeout));
         let (mut i, now) = input();
         i.repeat = Some(Repeat::EveryDays(0));
         assert!(matches!(i.validate(now), Err(ValidationError::Repeat(_))));

@@ -13,6 +13,7 @@ pub struct Model {
     pub full_name: String,
     /// Argon2id PHC string.
     pub password_hash: String,
+    pub is_admin: bool,
     pub created_at: DateTimeUtc,
 }
 
