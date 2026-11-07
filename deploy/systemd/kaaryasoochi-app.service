@@ -13,6 +13,8 @@ PartOf=graphical-session.target
 [Service]
 Type=simple
 WorkingDirectory=%h/.local/share/kaaryasoochi/app/linux
+# Tell GTK which .desktop file owns this process so GNOME Shell can show the correct dock icon.
+Environment=GIO_LAUNCHED_DESKTOP_FILE=%h/.local/share/applications/kaaryasoochi.desktop
 ExecStart=%h/.local/share/kaaryasoochi/app/linux/kaaryasoochi-app
 
 [Install]

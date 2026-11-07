@@ -9,5 +9,6 @@ Comment=Schedule and manage cron-style jobs
 Exec=INSTALL_DIR/linux/kaaryasoochi-app
 Icon=kaaryasoochi
 Terminal=false
+StartupWMClass=kaaryasoochi
 Categories=Utility;
 Keywords=cron;job;scheduler;task;automation;

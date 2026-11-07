@@ -59,5 +59,8 @@ else
 fi
 
 [ -x "$APP_BIN" ] || { echo "Not built. Run: cd crates/app && dx build --desktop --release" >&2; exit 1; }
-(cd "$APP_DIR" && setsid nohup "$APP_BIN" >"$DATA/app.log" 2>&1 &)
+# GIO_LAUNCHED_DESKTOP_FILE tells GTK which .desktop file owns this process; GNOME Shell uses
+# this to associate the running window with the correct app-grid entry and dock icon.
+(cd "$APP_DIR" && GIO_LAUNCHED_DESKTOP_FILE="$HOME/.local/share/applications/kaaryasoochi.desktop" \
+  GIO_LAUNCHED_DESKTOP_FILE_PID=$$ setsid nohup "$APP_BIN" >"$DATA/app.log" 2>&1 &)
 echo "desktop app started (log: $DATA/app.log)"

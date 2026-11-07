@@ -43,7 +43,7 @@ if [[ $uninstall -eq 1 ]]; then
   systemctl --user daemon-reload
   rm -f "$HOME/.local/share/applications/kaaryasoochi.desktop"
   rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/kaaryasoochi.svg"
-  for sz in 32 64 128 256 512; do
+  for sz in 32 48 64 128 256 512; do
     rm -f "$HOME/.local/share/icons/hicolor/${sz}x${sz}/apps/kaaryasoochi.png"
   done
   gtk-update-icon-cache -qtf "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
@@ -75,7 +75,7 @@ cp "$ROOT/deploy/systemd/$SERVER" "$ROOT/deploy/systemd/$APP" "$UNITS/"
 ICON_SRC="$ROOT/crates/app/assets"
 ICON_DEST="$HOME/.local/share/icons/hicolor"
 install -Dm644 "$ICON_SRC/icon.svg" "$ICON_DEST/scalable/apps/kaaryasoochi.svg"
-for sz in 32 64 128 256 512; do
+for sz in 32 48 64 128 256 512; do
   install -Dm644 "$ICON_SRC/icons/${sz}.png" "$ICON_DEST/${sz}x${sz}/apps/kaaryasoochi.png"
 done
 gtk-update-icon-cache -qtf "$ICON_DEST" 2>/dev/null || true

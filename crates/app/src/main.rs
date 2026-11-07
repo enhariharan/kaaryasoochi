@@ -51,7 +51,24 @@ fn main() {
         Ok(dioxus::server::router(App))
     });
     #[cfg(not(feature = "server"))]
-    dioxus::launch(App);
+    {
+        // Set program name and GDK class to "kaaryasoochi" so that the Wayland compositor receives
+        // that string as the xdg_toplevel app_id, matching kaaryasoochi.desktop.
+        // These calls must happen before GTK initialises (which Dioxus does on first event-loop
+        // creation), so calling them here — before LaunchBuilder — is correct.
+        #[cfg(target_os = "linux")]
+        unsafe {
+            use std::os::raw::c_char;
+            extern "C" {
+                fn g_set_prgname(prgname: *const c_char);
+                fn gdk_set_program_class(program_class: *const c_char);
+            }
+            let name = b"kaaryasoochi\0";
+            g_set_prgname(name.as_ptr() as *const c_char);
+            gdk_set_program_class(name.as_ptr() as *const c_char);
+        }
+        dioxus::launch(App);
+    }
 }
 
 #[component]
