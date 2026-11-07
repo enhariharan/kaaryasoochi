@@ -108,6 +108,8 @@ fn App() -> Element {
         document::Title { "Kaaryasoochi" }
         document::Meta { name: "viewport", content: "width=device-width, initial-scale=1" }
         document::Stylesheet { href: asset!("/assets/main.css") }
+        document::Link { rel: "icon", r#type: "image/svg+xml", href: asset!("/assets/icon.svg") }
+        document::Link { rel: "icon", r#type: "image/png", sizes: "32x32", href: asset!("/assets/icons/32.png") }
         div { class: "app", "data-theme": theme, dir: lang.dir(), lang: lang.code(),
             if *state.ready.read() { Router::<Route> {} } else { p { class: "muted center", "…" } }
         }
@@ -150,7 +152,10 @@ fn Shell() -> Element {
 
     rsx! {
         header { class: "topbar",
-            Link { to: Route::Home {}, class: "brand", {state::t("app.name")} }
+            Link { to: Route::Home {}, class: "brand",
+                img { src: asset!("/assets/icon.svg"), width: "28", height: "28", alt: "", "aria-hidden": "true" }
+                {state::t("app.name")}
+            }
             nav {
                 Link { to: Route::Home {}, {state::t("home.title")} }
                 Link { to: Route::Settings {}, {state::t("settings.title")} }

@@ -41,7 +41,13 @@ if [[ $uninstall -eq 1 ]]; then
   systemctl --user disable --now "$APP" "$SERVER" 2>/dev/null || true
   rm -f "$UNITS/$SERVER" "$UNITS/$APP"; rm -rf "$UNITS/$SERVER.d"
   systemctl --user daemon-reload
-  echo "services removed (build copy and database left in ~/.local/share/kaaryasoochi)"
+  rm -f "$HOME/.local/share/applications/kaaryasoochi.desktop"
+  rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/kaaryasoochi.svg"
+  for sz in 32 64 128 256 512; do
+    rm -f "$HOME/.local/share/icons/hicolor/${sz}x${sz}/apps/kaaryasoochi.png"
+  done
+  gtk-update-icon-cache -qtf "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+  echo "services and desktop integration removed (build copy and database left in ~/.local/share/kaaryasoochi)"
   exit 0
 fi
 
@@ -60,6 +66,17 @@ mkdir -p "$DEST" "$UNITS"
 rsync -a --delete "$REL/web/" "$DEST/web/"
 rsync -a --delete "$REL/linux/app/" "$DEST/linux/"
 cp "$ROOT/deploy/systemd/$SERVER" "$ROOT/deploy/systemd/$APP" "$UNITS/"
+
+# Desktop integration: app-grid icon and launcher entry
+ICON_SRC="$ROOT/crates/app/assets"
+ICON_DEST="$HOME/.local/share/icons/hicolor"
+install -Dm644 "$ICON_SRC/icon.svg" "$ICON_DEST/scalable/apps/kaaryasoochi.svg"
+for sz in 32 64 128 256 512; do
+  install -Dm644 "$ICON_SRC/icons/${sz}.png" "$ICON_DEST/${sz}x${sz}/apps/kaaryasoochi.png"
+done
+gtk-update-icon-cache -qtf "$ICON_DEST" 2>/dev/null || true
+install -Dm644 <(sed "s|INSTALL_DIR|$DEST|g" "$ROOT/deploy/kaaryasoochi.desktop") \
+  "$HOME/.local/share/applications/kaaryasoochi.desktop"
 
 if [[ -n "$wait_for" ]]; then
   mkdir -p "$UNITS/$SERVER.d"

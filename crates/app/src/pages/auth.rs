@@ -47,6 +47,9 @@ pub fn Login() -> Element {
 
     rsx! {
         section { class: "card auth",
+            div { class: "auth-logo",
+                img { src: asset!("/assets/icon.svg"), width: "72", height: "72", alt: "Kaaryasoochi" }
+            }
             h1 { {t("auth.login")} }
             form { onsubmit: submit,
                 label { {t("auth.username")}
@@ -98,6 +101,9 @@ pub fn Register() -> Element {
 
     rsx! {
         section { class: "card auth",
+            div { class: "auth-logo",
+                img { src: asset!("/assets/icon.svg"), width: "72", height: "72", alt: "Kaaryasoochi" }
+            }
             h1 { {t("auth.register")} }
             form { onsubmit: submit,
                 label { {t("settings.full_name")}

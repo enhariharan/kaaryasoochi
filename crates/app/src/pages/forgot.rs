@@ -92,6 +92,9 @@ pub fn Forgot() -> Element {
 
     rsx! {
         section { class: "card auth",
+            div { class: "auth-logo",
+                img { src: asset!("/assets/icon.svg"), width: "72", height: "72", alt: "Kaaryasoochi" }
+            }
             h1 { {t("auth.forgot.title")} }
             match step() {
                 Step::Username => rsx! {
