@@ -6,7 +6,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::{DateFormat, Language, Layout, Repeat, RunMode, TabOrientation, Theme, TimeFormat};
+use crate::{ButtonDisplay, DateFormat, Language, Layout, Repeat, RunMode, TabOrientation, Theme, TimeFormat};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UserView {
@@ -115,6 +115,7 @@ pub struct UserSettings {
     pub language: Language,
     /// `"system"` (follow the device) or an IANA name such as `Asia/Kolkata`.
     pub timezone: String,
+    pub button_display: ButtonDisplay,
 }
 
 impl Default for UserSettings {
@@ -128,6 +129,7 @@ impl Default for UserSettings {
             page_size: crate::limits::PAGE_SIZE_DEFAULT,
             language: Language::default(),
             timezone: crate::timezone::SYSTEM.to_owned(),
+            button_display: ButtonDisplay::default(),
         }
     }
 }

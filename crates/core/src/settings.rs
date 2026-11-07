@@ -29,6 +29,13 @@ string_enum!(
     default System
 );
 string_enum!(TimeFormat { System => "system", H24 => "%H:%M", H12 => "%I:%M %p" } default System);
+string_enum!(ButtonDisplay {
+    TextOnly => "text_only",
+    IconOnly => "icon_only",
+    IconText => "icon_text",
+    IconTextHotkey => "icon_text_hotkey",
+    TextHotkey => "text_hotkey"
+} default IconText);
 
 impl DateFormat {
     /// strftime pattern, or `None` for `System`.

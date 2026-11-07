@@ -17,7 +17,8 @@ use kaaryasoochi_core::limits::{
 use kaaryasoochi_core::timezone::{self, Tz};
 use kaaryasoochi_core::{JobInput, Repeat, RunMode};
 
-use super::{clean_err, ErrorBanner};
+use super::{clean_err, ErrorBanner, IBtn, ILink};
+use crate::icons::*;
 use crate::state::{
     default_first_run, effective_tz, local_input_to_utc, sleep_ms, t, token, utc_to_local_input,
 };
@@ -136,8 +137,8 @@ fn JobForm(id: Option<i32>) -> Element {
         Some(Ok(())) => {}
     }
 
-    let submit = move |e: FormEvent| {
-        e.prevent_default();
+    // Core save logic, callable from both the form's onsubmit and the Ctrl+Enter shortcut.
+    let mut do_submit = move || {
         busy.set(true);
         spawn(async move {
             let res = async {
@@ -187,6 +188,10 @@ fn JobForm(id: Option<i32>) -> Element {
             busy.set(false);
         });
     };
+    let submit = move |e: FormEvent| {
+        e.prevent_default();
+        do_submit();
+    };
 
     let run_now = move |_| {
         let Some(id) = id else { return };
@@ -223,6 +228,10 @@ fn JobForm(id: Option<i32>) -> Element {
 
     rsx! {
         form { class: "job-page", onsubmit: submit,
+            // Ctrl+Enter saves from anywhere in the form, including multi-line textareas.
+            onkeydown: move |e: Event<KeyboardData>| {
+                if e.modifiers().ctrl() && e.key().to_string() == "Enter" { do_submit(); }
+            },
             section { class: "card",
                 h1 { if id.is_some() { "{title}" } else { {t("job.add")} } }
                 label { {t("job.title")} " *"
@@ -245,9 +254,13 @@ fn JobForm(id: Option<i32>) -> Element {
                 if is_admin {
                     div { class: "seg wide",
                         button { r#type: "button", class: if run_mode() == RunMode::Command { "on" } else { "" },
-                            onclick: move |_| run_mode.set(RunMode::Command), {t("job.mode.command")} }
+                            onclick: move |_| run_mode.set(RunMode::Command),
+                            span { class: "ibtn-icon", "aria-hidden": "true", {icon_terminal()} }
+                            {t("job.mode.command")} }
                         button { r#type: "button", class: if run_mode() == RunMode::Script { "on" } else { "" },
-                            onclick: move |_| run_mode.set(RunMode::Script), {t("job.mode.script")} }
+                            onclick: move |_| run_mode.set(RunMode::Script),
+                            span { class: "ibtn-icon", "aria-hidden": "true", {icon_document()} }
+                            {t("job.mode.script")} }
                     }
                     if run_mode() == RunMode::Command {
                         label { {t("job.command")}
@@ -258,7 +271,9 @@ fn JobForm(id: Option<i32>) -> Element {
                             div { class: "path-row",
                                 input { class: "mono", r#type: "text", maxlength: PATH_MAX as i64, placeholder: "/home/you/scripts/backup.sh",
                                     value: "{script_path}", oninput: move |e| script_path.set(e.value()) }
-                                button { r#type: "button", onclick: move |_| picker_open.set(true), {t("job.script.browse")} }
+                                button { r#type: "button", onclick: move |_| picker_open.set(true),
+                            span { class: "ibtn-icon", "aria-hidden": "true", {icon_folder()} }
+                            {t("job.script.browse")} }
                             } }
                         ScriptStatus { path: script_path }
                         label { {t("job.script.args")}
@@ -308,15 +323,20 @@ fn JobForm(id: Option<i32>) -> Element {
             ErrorBanner { msg: error }
             if let Some(m) = info() { p { class: "muted", role: "status", "{m}" } }
             div { class: "actions sticky",
-                button { class: "primary", r#type: "submit", disabled: busy(), {t("common.save")} }
-                Link { to: Route::Home {}, class: "button", {t("common.cancel")} }
+                IBtn { icon: icon_check(), label: t("common.save"), hotkey: "Ctrl+↵",
+                    r#type: "submit", class: "primary", disabled: busy() }
+                ILink { to: Route::Home {}, icon: icon_x(), label: t("common.cancel"), class: "button" }
                 if let Some(id) = id {
-                    button { r#type: "button", onclick: run_now, {t("job.run_now")} }
-                    button { class: "danger", r#type: "button", onclick: move |_| {
-                        spawn(async move {
-                            match api::delete_job(token(), id).await { Ok(()) => { nav.push(Route::Home {}); } Err(e) => error.set(Some(clean_err(e))) }
-                        });
-                    }, {t("common.delete")} }
+                    IBtn { icon: icon_play(), label: t("job.run_now"), hotkey: "Alt+R",
+                        r#type: "button", accesskey: "r", aria_keyshortcuts: "Alt+r",
+                        onclick: run_now }
+                    IBtn { icon: icon_trash(), label: t("common.delete"),
+                        r#type: "button", class: "danger",
+                        onclick: move |_| {
+                            spawn(async move {
+                                match api::delete_job(token(), id).await { Ok(()) => { nav.push(Route::Home {}); } Err(e) => error.set(Some(clean_err(e))) }
+                            });
+                        } }
                 }
             }
         }

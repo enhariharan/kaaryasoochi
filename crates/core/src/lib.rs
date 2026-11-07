@@ -20,7 +20,7 @@ pub use crontext::{describe, SimplePreset};
 pub use exec::RunMode;
 pub use i18n::{tr, Language};
 pub use recurrence::{Repeat, Weekday, WeekdaySet};
-pub use settings::{DateFormat, Layout, TabOrientation, Theme, TimeFormat};
+pub use settings::{ButtonDisplay, DateFormat, Layout, TabOrientation, Theme, TimeFormat};
 pub use validation::{JobInput, ValidationError};
 
 /// Name of the category that always exists and receives uncategorised jobs.

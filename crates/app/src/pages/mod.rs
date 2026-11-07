@@ -100,6 +100,99 @@ pub fn clean_err(e: ServerFnError) -> String {
     s.split(" (details:").next().unwrap_or(s).to_owned()
 }
 
+/// Icon button: renders icon + label + hotkey badge, controlled by [data-display] on .app.
+/// A floating tooltip always shows label + hotkey on hover / focus / long-touch.
+#[component]
+pub fn IBtn(
+    icon: Element,
+    label: &'static str,
+    #[props(default)] hotkey: &'static str,
+    #[props(default = "button")] r#type: &'static str,
+    #[props(default)] class: &'static str,
+    #[props(default)] disabled: bool,
+    #[props(default)] accesskey: &'static str,
+    #[props(default)] aria_keyshortcuts: &'static str,
+    #[props(optional)] onclick: Option<EventHandler<MouseEvent>>,
+) -> Element {
+    let title_text = if hotkey.is_empty() {
+        label.to_owned()
+    } else {
+        format!("{label} ({hotkey})")
+    };
+    rsx! {
+        button {
+            r#type,
+            class: "ibtn {class}",
+            disabled,
+            title: "{title_text}",
+            "aria-label": "{title_text}",
+            accesskey: if !accesskey.is_empty() { Some(accesskey) } else { None },
+            "aria-keyshortcuts": if !aria_keyshortcuts.is_empty() { Some(aria_keyshortcuts) } else { None },
+            onclick: move |e| {
+                if let Some(h) = &onclick {
+                    h.call(e);
+                }
+            },
+            span { class: "ibtn-icon", "aria-hidden": "true", {icon} }
+            span { class: "ibtn-label", {label} }
+            if !hotkey.is_empty() {
+                span { class: "ibtn-key", "aria-hidden": "true", kbd { {hotkey} } }
+            }
+            span { class: "ibtn-tt", "aria-hidden": "true",
+                {label}
+                if !hotkey.is_empty() {
+                    " "
+                    kbd { {hotkey} }
+                }
+            }
+        }
+    }
+}
+
+/// Icon link (renders as <a> via Dioxus Link, same visual structure as IBtn).
+#[component]
+pub fn ILink(
+    to: crate::Route,
+    icon: Element,
+    label: &'static str,
+    #[props(default)] hotkey: &'static str,
+    #[props(default)] class: &'static str,
+    #[props(default)] accesskey: &'static str,
+    #[props(optional)] onclick: Option<EventHandler<MouseEvent>>,
+) -> Element {
+    let title_text = if hotkey.is_empty() {
+        label.to_owned()
+    } else {
+        format!("{label} ({hotkey})")
+    };
+    rsx! {
+        Link {
+            to,
+            class: "ibtn {class}",
+            title: "{title_text}",
+            "aria-label": "{title_text}",
+            accesskey: if !accesskey.is_empty() { Some(accesskey) } else { None },
+            onclick: move |e| {
+                if let Some(h) = &onclick {
+                    h.call(e);
+                }
+            },
+            span { class: "ibtn-icon", "aria-hidden": "true", {icon} }
+            span { class: "ibtn-label", {label} }
+            if !hotkey.is_empty() {
+                span { class: "ibtn-key", "aria-hidden": "true", kbd { {hotkey} } }
+            }
+            span { class: "ibtn-tt", "aria-hidden": "true",
+                {label}
+                if !hotkey.is_empty() {
+                    " "
+                    kbd { {hotkey} }
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

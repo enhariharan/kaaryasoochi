@@ -4,7 +4,7 @@
 use kaaryasoochi_core::dto::UserSettings;
 use kaaryasoochi_core::limits::PAGE_SIZE_OPTIONS;
 use kaaryasoochi_core::timezone::{self, Tz};
-use kaaryasoochi_core::{DateFormat, Language, Layout, TabOrientation, Theme, TimeFormat};
+use kaaryasoochi_core::{ButtonDisplay, DateFormat, Language, Layout, TabOrientation, Theme, TimeFormat};
 use sea_orm::{prelude::*, ActiveValue::Set};
 
 use crate::entity::user_settings as us;
@@ -34,6 +34,7 @@ pub async fn get(db: &impl ConnectionTrait, user_id: i32) -> DbResult<UserSettin
         page_size: m.page_size.max(1) as u32,
         language: Language::parse(&m.language),
         timezone: m.timezone,
+        button_display: ButtonDisplay::parse(&m.button_display),
     })
 }
 
@@ -61,6 +62,7 @@ pub async fn update(
     am.page_size = Set(s.page_size as i32);
     am.language = Set(s.language.code().into());
     am.timezone = Set(s.timezone.clone());
+    am.button_display = Set(s.button_display.as_str().into());
     am.update(db).await?;
     Ok(s)
 }

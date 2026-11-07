@@ -7,7 +7,8 @@
 use dioxus::prelude::*;
 
 use crate::api;
-use crate::pages::clean_err;
+use crate::icons::*;
+use crate::pages::{clean_err, IBtn};
 use crate::state::{t, token};
 
 /// Directory part of a file path ("" when there is none, which lists the home directory).
@@ -51,17 +52,22 @@ pub fn FilePicker(open: Signal<bool>, start: String, on_pick: EventHandler<Strin
 
     rsx! {
         div { class: "modal-backdrop", onclick: move |_| open.set(false),
+            // Escape closes the picker from anywhere inside it; the event bubbles up here.
+            onkeydown: move |e: Event<KeyboardData>| {
+                if e.key().to_string() == "Escape" { open.set(false); }
+            },
             div { class: "modal", role: "dialog", "aria-modal": true, onclick: move |e| e.stop_propagation(),
                 h2 { {t("picker.title")} }
                 form { class: "picker-bar",
                     onsubmit: move |e| { e.prevent_default(); dir.set(location()); selected.set(None); },
-                    button { r#type: "button",
+                    IBtn { icon: icon_arrow_up(), label: t("picker.up"),
+                        r#type: "button",
                         disabled: !matches!(&*listing.read(), Some(Ok(l)) if l.parent.is_some()),
                         onclick: move |_| {
                             if let Some(Ok(l)) = &*listing.read() {
                                 if let Some(p) = l.parent.clone() { dir.set(p); selected.set(None); }
                             }
-                        }, "↑ " {t("picker.up")} }
+                        } }
                     input { class: "mono", r#type: "text", "aria-label": t("picker.location"), value: "{location}",
                         oninput: move |e| location.set(e.value()) }
                 }
@@ -69,6 +75,14 @@ pub fn FilePicker(open: Signal<bool>, start: String, on_pick: EventHandler<Strin
                     input { r#type: "checkbox", checked: show_hidden(), onchange: move |e| show_hidden.set(e.checked()) }
                     {t("picker.hidden")} }
                 div { class: "picker-list",
+                    // Backspace navigates up when focus is on a file/dir entry (not in the path input).
+                    onkeydown: move |e: Event<KeyboardData>| {
+                        if e.key().to_string() == "Backspace" {
+                            if let Some(Ok(l)) = &*listing.read() {
+                                if let Some(p) = l.parent.clone() { dir.set(p); selected.set(None); }
+                            }
+                        }
+                    },
                     match &*listing.read() {
                         None => rsx! { p { class: "muted", "…" } },
                         Some(Err(e)) => rsx! { p { class: "error", "{clean_err(e.clone())}" } },
@@ -98,9 +112,11 @@ pub fn FilePicker(open: Signal<bool>, start: String, on_pick: EventHandler<Strin
                 }
                 if let Some(s) = selected() { p { class: "mono muted", "{s}" } }
                 div { class: "actions",
-                    button { class: "primary", r#type: "button", disabled: selected().is_none(),
-                        onclick: move |_| if let Some(s) = selected() { pick(s) }, {t("picker.select")} }
-                    button { r#type: "button", onclick: move |_| open.set(false), {t("common.cancel")} }
+                    IBtn { icon: icon_check(), label: t("picker.select"),
+                        r#type: "button", class: "primary", disabled: selected().is_none(),
+                        onclick: move |_| if let Some(s) = selected() { pick(s) } }
+                    IBtn { icon: icon_x(), label: t("common.cancel"),
+                        r#type: "button", onclick: move |_| open.set(false) }
                 }
             }
         }

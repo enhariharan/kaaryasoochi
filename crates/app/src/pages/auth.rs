@@ -5,7 +5,8 @@ use dioxus::prelude::*;
 
 use kaaryasoochi_core::limits::{SECRET_ANSWER_MAX, SECRET_QUESTION_MAX, SECRET_QUESTION_MIN};
 
-use super::{clean_err, ErrorBanner, PasswordField};
+use super::{clean_err, ErrorBanner, IBtn, PasswordField};
+use crate::icons::*;
 use crate::state::{app_state, persist_token, t};
 use crate::{api, Route};
 
@@ -56,11 +57,12 @@ pub fn Login() -> Element {
                     input { r#type: "text", autocomplete: "username", required: true, value: "{username}", oninput: move |e| username.set(e.value()) } }
                 PasswordField { label: "auth.password", value: password, autocomplete: "current-password" }
                 ErrorBanner { msg: error }
-                button { class: "primary", disabled: busy(), r#type: "submit", {t("auth.login")} }
+                IBtn { icon: icon_arrow_right(), label: t("auth.login"),
+                    r#type: "submit", class: "primary", disabled: busy() }
             }
             // Passkey sign-in is planned; the button stays hidden until the WebAuthn flow exists.
-            p { class: "muted", Link { to: Route::Forgot {}, {t("auth.forgot")} } }
-            p { class: "muted", Link { to: Route::Register {}, {t("auth.register")} } }
+            p { class: "muted", Link { to: Route::Forgot {}, {icon_key()} " " {t("auth.forgot")} } }
+            p { class: "muted", Link { to: Route::Register {}, {icon_user_plus()} " " {t("auth.register")} } }
         }
     }
 }
@@ -117,9 +119,10 @@ pub fn Register() -> Element {
                     small { class: "muted", {t("auth.secret_hint")} } }
                 PasswordField { label: "auth.secret_answer", value: secret_answer, autocomplete: "off", maxlength: SECRET_ANSWER_MAX as i64 }
                 ErrorBanner { msg: error }
-                button { class: "primary", disabled: busy(), r#type: "submit", {t("auth.register")} }
+                IBtn { icon: icon_user_plus(), label: t("auth.register"),
+                    r#type: "submit", class: "primary", disabled: busy() }
             }
-            p { class: "muted", Link { to: Route::Login {}, {t("auth.login")} } }
+            p { class: "muted", Link { to: Route::Login {}, {icon_arrow_right()} " " {t("auth.login")} } }
         }
     }
 }

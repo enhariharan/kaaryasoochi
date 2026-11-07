@@ -135,3 +135,58 @@ select option { background:var(--card); color:var(--fg); }
 .question { border:1px solid var(--border); border-radius:8px; padding:.5rem .8rem; background:var(--bg); }
 .question p { margin:.15rem 0 0; font-weight:600; }
 .small { font-size:.8rem; }
+
+/* keyboard shortcut help */
+kbd { display:inline-block; padding:.1rem .4rem; border:1px solid var(--border); border-radius:5px; background:var(--bg); font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:.8rem; box-shadow:inset 0 -2px 0 var(--border); white-space:nowrap; }
+kbd + kbd { margin-inline-start:.3rem; }
+.hotkey-help { max-width:480px; }
+.hotkey-help table { margin-block:.5rem 1rem; border:none; }
+.hotkey-help th, .hotkey-help td { border:none; padding:.3rem .4rem; }
+.hotkey-help td:first-child { padding-inline-end:1.5rem; white-space:nowrap; }
+.hotkey-help .section-head td { padding-block-start:.9rem; font-weight:600; color:var(--muted); font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; }
+
+/* ---- ibtn: icon button with label and optional shortcut key ---- */
+.ibtn { display:inline-flex; align-items:center; gap:.35rem; position:relative; }
+a.ibtn { text-decoration:none; color:inherit; }
+.ibtn-icon { display:inline-flex; align-items:center; flex-shrink:0; }
+.ibtn-label { }
+.ibtn-key { display:none; align-items:center; }
+.ibtn-tt {
+    position:absolute; bottom:calc(100% + 5px);
+    inset-inline-start:0; inset-inline-end:0;
+    width:max-content; margin-inline:auto;
+    background:var(--card); border:1px solid var(--border); border-radius:8px;
+    padding:.3rem .6rem; white-space:nowrap;
+    display:flex; align-items:center; gap:.35rem;
+    pointer-events:none; opacity:0; transition:opacity .15s;
+    z-index:200; box-shadow:0 2px 8px rgba(0,0,0,.18);
+}
+.topbar .ibtn-tt { bottom:auto; top:calc(100% + 5px); }
+
+/* text-only: hide icon and key */
+[data-display="text_only"] .ibtn-icon { display:none; }
+[data-display="text_only"] .ibtn-key  { display:none; }
+
+/* icon-only: hide label and key */
+[data-display="icon_only"] .ibtn-label { display:none; }
+[data-display="icon_only"] .ibtn-key   { display:none; }
+
+/* icon-text: default (icon+label shown, key hidden) — already the default state */
+
+/* icon-text-hotkey: show key too */
+[data-display="icon_text_hotkey"] .ibtn-key { display:inline-flex; }
+
+/* text-hotkey: hide icon, show key */
+[data-display="text_hotkey"] .ibtn-icon { display:none; }
+[data-display="text_hotkey"] .ibtn-key  { display:inline-flex; }
+
+/* hover / focus-visible / long-touch: show tooltip */
+.ibtn:hover .ibtn-tt,
+.ibtn:focus-visible .ibtn-tt,
+.ibtn.touch-expanded .ibtn-tt { opacity:1; }
+
+/* FAB is always icon-only; override display mode */
+.fab .ibtn-label { display:none; }
+.fab .ibtn-key   { display:none; }
+.fab .ibtn-icon  { display:inline-flex; }
+.fab.ibtn        { font-size:2rem; }

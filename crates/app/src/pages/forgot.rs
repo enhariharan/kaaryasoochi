@@ -8,7 +8,8 @@
 use dioxus::prelude::*;
 use kaaryasoochi_core::limits::{PASSWORD_MAX, PASSWORD_MIN, SECRET_ANSWER_MAX};
 
-use super::{clean_err, ErrorBanner, PasswordField};
+use super::{clean_err, ErrorBanner, IBtn, PasswordField};
+use crate::icons::*;
 use crate::state::t;
 use crate::{api, Route};
 
@@ -104,7 +105,8 @@ pub fn Forgot() -> Element {
                             input { r#type: "text", autocomplete: "username", required: true, value: "{username}",
                                 oninput: move |e| username.set(e.value()) } }
                         ErrorBanner { msg: error }
-                        button { class: "primary", disabled: busy(), r#type: "submit", {t("auth.forgot.continue")} }
+                        IBtn { icon: icon_arrow_right(), label: t("auth.forgot.continue"),
+                            r#type: "submit", class: "primary", disabled: busy() }
                         p { class: "muted small", {t("auth.forgot.no_secret")} }
                     }
                 },
@@ -116,8 +118,10 @@ pub fn Forgot() -> Element {
                         }
                         PasswordField { label: "auth.secret_answer", value: answer, autocomplete: "off", maxlength: SECRET_ANSWER_MAX as i64 }
                         ErrorBanner { msg: error }
-                        button { class: "primary", disabled: busy(), r#type: "submit", {t("auth.forgot.check")} }
-                        button { class: "link", r#type: "button", onclick: start_over, {t("auth.forgot.start_over")} }
+                        IBtn { icon: icon_check(), label: t("auth.forgot.check"),
+                            r#type: "submit", class: "primary", disabled: busy() }
+                        IBtn { icon: icon_refresh(), label: t("auth.forgot.start_over"),
+                            r#type: "button", class: "link", onclick: start_over }
                     }
                 },
                 Step::NewPassword { .. } => rsx! {
@@ -127,15 +131,17 @@ pub fn Forgot() -> Element {
                         PasswordField { label: "auth.confirm_password", value: confirm, autocomplete: "new-password",
                             minlength: PASSWORD_MIN as i64, maxlength: PASSWORD_MAX as i64 }
                         ErrorBanner { msg: error }
-                        button { class: "primary", disabled: busy(), r#type: "submit", {t("auth.forgot.reset")} }
-                        button { class: "link", r#type: "button", onclick: start_over, {t("auth.forgot.start_over")} }
+                        IBtn { icon: icon_lock(), label: t("auth.forgot.reset"),
+                            r#type: "submit", class: "primary", disabled: busy() }
+                        IBtn { icon: icon_refresh(), label: t("auth.forgot.start_over"),
+                            r#type: "button", class: "link", onclick: start_over }
                     }
                 },
                 Step::Done => rsx! {
                     p { role: "status", {t("auth.forgot.done")} }
                 },
             }
-            p { class: "muted", Link { to: Route::Login {}, {t("auth.forgot.back")} } }
+            p { class: "muted", Link { to: Route::Login {}, {icon_arrow_left()} " " {t("auth.forgot.back")} } }
         }
     }
 }

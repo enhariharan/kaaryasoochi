@@ -8,6 +8,8 @@ use dioxus::prelude::*;
 use kaaryasoochi_core::dto::{RunStatus, RunView};
 
 use crate::api;
+use crate::icons::*;
+use crate::pages::IBtn;
 use crate::state::{app_state, fmt_datetime, t, token};
 
 fn status_label(s: RunStatus) -> &'static str {
@@ -61,6 +63,7 @@ pub fn History(job_id: i32, refresh: Signal<u32>, open: Signal<bool>) -> Element
             button { class: "history-toggle", r#type: "button", "aria-expanded": open(),
                 onclick: move |_| open.set(!open()),
                 span { class: if open() { "chev" } else { "chev closed" }, if open() { "▾" } else { "▸" } }
+                span { class: "ibtn-icon", "aria-hidden": "true", {icon_clock()} }
                 strong { {t("job.history")} }
                 match &*summary.read() {
                     Some(Ok(s)) => rsx! {
@@ -96,9 +99,13 @@ pub fn History(job_id: i32, refresh: Signal<u32>, open: Signal<bool>) -> Element
                             }
                         }
                         div { class: "pager",
-                            button { disabled: p.page <= 1, onclick: move |_| page -= 1, {t("common.prev")} }
+                            IBtn { icon: icon_chevron_left(), label: t("common.prev"),
+                                r#type: "button", disabled: p.page <= 1,
+                                onclick: move |_| page -= 1 }
                             span { "{p.page} / {p.total_pages()}" }
-                            button { disabled: p.page >= p.total_pages(), onclick: move |_| page += 1, {t("common.next")} }
+                            IBtn { icon: icon_chevron_right(), label: t("common.next"),
+                                r#type: "button", disabled: p.page >= p.total_pages(),
+                                onclick: move |_| page += 1 }
                         }
                     },
                 }

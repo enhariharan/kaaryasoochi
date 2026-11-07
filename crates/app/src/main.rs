@@ -6,10 +6,12 @@ mod api;
 mod backend;
 #[cfg(feature = "server")]
 mod fsbrowse;
+mod icons;
 mod pages;
 mod state;
 
 use dioxus::prelude::*;
+use icons::*;
 use kaaryasoochi_core::dto::UserSettings;
 use kaaryasoochi_core::Theme;
 use pages::*;
@@ -127,7 +129,7 @@ fn App() -> Element {
         document::Stylesheet { href: asset!("/assets/main.css") }
         document::Link { rel: "icon", r#type: "image/svg+xml", href: asset!("/assets/icon.svg") }
         document::Link { rel: "icon", r#type: "image/png", sizes: "32x32", href: asset!("/assets/icons/32.png") }
-        div { class: "app", "data-theme": theme, dir: lang.dir(), lang: lang.code(),
+        div { class: "app", "data-theme": theme, "data-display": state.settings.read().button_display.as_str(), dir: lang.dir(), lang: lang.code(),
             if *state.ready.read() { Router::<Route> {} } else { p { class: "muted center", "…" } }
         }
     }
@@ -138,10 +140,73 @@ fn App() -> Element {
 fn Shell() -> Element {
     let mut s = app_state();
     let nav = use_navigator();
+    let mut help_open = use_signal(|| false);
     use_effect(move || {
         if s.token.read().is_none() {
             nav.replace(Route::Login {});
         }
+    });
+
+    // Global keyboard shortcuts. Registered once per mount; a flag prevents double-binding on
+    // re-mount. Keys are ignored while any input, textarea or select has focus.
+    // Sequences: `g h` → Home, `g s` → Settings.  Singles: `n` → new job, `?` → help.
+    use_future(move || async move {
+        let mut e = document::eval(r#"
+            (function() {
+                if (window._ksRegistered) return;
+                window._ksRegistered = true;
+                var seq = null, timer = null;
+                document.addEventListener('keydown', function(ev) {
+                    var tag = (document.activeElement || {}).tagName || '';
+                    tag = tag.toLowerCase();
+                    var editable = !!(document.activeElement && document.activeElement.isContentEditable);
+                    if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
+                    if (tag === 'input' || tag === 'textarea' || tag === 'select' || editable) return;
+                    if (seq === 'g') {
+                        clearTimeout(timer); seq = null;
+                        dioxus.send('g:' + ev.key);
+                        ev.preventDefault();
+                        return;
+                    }
+                    if (ev.key === 'g') {
+                        seq = 'g';
+                        clearTimeout(timer);
+                        timer = setTimeout(function() { seq = null; }, 1500);
+                        ev.preventDefault();
+                        return;
+                    }
+                    dioxus.send(':' + ev.key);
+                });
+            })();
+        "#);
+        while let Ok(msg) = e.recv::<String>().await {
+            match msg.as_str() {
+                "g:h" => { let _ = nav.push(Route::Home {}); }
+                "g:s" => { let _ = nav.push(Route::Settings {}); }
+                ":n" => { let _ = nav.push(Route::JobNew {}); }
+                ":?" => { help_open.set(!help_open()); }
+                _ => {}
+            }
+        }
+    });
+    // Long-touch on any .ibtn shows the full label+hotkey tooltip for 500ms.
+    use_effect(move || {
+        let _ = document::eval(
+            r#"(function(){
+                if(window._ltRegistered)return;
+                window._ltRegistered=true;
+                var t=null,el=null;
+                document.addEventListener('touchstart',function(e){
+                    var b=e.target.closest('.ibtn');
+                    if(!b)return;
+                    el=b;
+                    t=setTimeout(function(){b.classList.add('touch-expanded');},500);
+                },{passive:true});
+                function clear(){clearTimeout(t);if(el){el.classList.remove('touch-expanded');el=null;}}
+                document.addEventListener('touchend',clear,{passive:true});
+                document.addEventListener('touchmove',clear,{passive:true});
+            })();"#,
+        );
     });
     // Let the server know the device's zone; it is used while the time-zone setting is "system".
     use_effect(move || {
@@ -174,15 +239,17 @@ fn Shell() -> Element {
                 {state::t("app.name")}
             }
             nav {
-                Link { to: Route::Home {}, {state::t("home.title")} }
-                Link { to: Route::Settings {}, {state::t("settings.title")} }
-                button { class: "link", onclick: move |_| {
-                    let tok = state::token();
-                    spawn(async move { let _ = api::logout(tok).await; });
-                    state::persist_token(None);
-                    s.token.set(None);
-                    s.settings.set(UserSettings::default());
-                }, {state::t("auth.logout")} }
+                ILink { to: Route::Home {}, icon: icon_home(), label: state::t("home.title"), hotkey: "g h" }
+                ILink { to: Route::Settings {}, icon: icon_settings(), label: state::t("settings.title"), hotkey: "g s" }
+                IBtn { icon: icon_logout(), label: state::t("auth.logout"), hotkey: "Alt+Q",
+                    class: "link", accesskey: "q", aria_keyshortcuts: "Alt+q",
+                    onclick: move |_| {
+                        let tok = state::token();
+                        spawn(async move { let _ = api::logout(tok).await; });
+                        state::persist_token(None);
+                        s.token.set(None);
+                        s.settings.set(UserSettings::default());
+                    } }
             }
         }
         if *s.secret_missing.read() {
@@ -192,5 +259,55 @@ fn Shell() -> Element {
             }
         }
         main { Outlet::<Route> {} }
+        if help_open() { HotkeyHelp { open: help_open } }
+    }
+}
+
+#[component]
+fn HotkeyHelp(open: Signal<bool>) -> Element {
+    let mut open = open;
+    // Auto-focus the close button so Escape/Enter can dismiss the overlay without further Tab.
+    use_effect(move || {
+        let _ = document::eval(
+            "requestAnimationFrame(function(){document.querySelector('.hotkey-help .close-btn')?.focus();})",
+        );
+    });
+    rsx! {
+        div { class: "modal-backdrop",
+            onclick: move |_| open.set(false),
+            onkeydown: move |e: Event<KeyboardData>| {
+                if e.key().to_string() == "Escape" { open.set(false); }
+            },
+            div { class: "modal hotkey-help", role: "dialog", "aria-modal": true,
+                "aria-label": state::t("hotkeys.title"),
+                onclick: move |e| e.stop_propagation(),
+                h2 { {state::t("hotkeys.title")} }
+                table { "aria-label": state::t("hotkeys.title"),
+                    tbody {
+                        tr { class: "section-head", td { colspan: 2, {state::t("home.title")} } }
+                        tr { td { kbd { "g" } " " kbd { "h" } } td { {state::t("home.title")} } }
+                        tr { td { kbd { "n" } } td { {state::t("job.add")} } }
+                        tr { td { kbd { "Alt" } " " kbd { "N" } } td { {state::t("job.add")} } }
+
+                        tr { class: "section-head", td { colspan: 2, {state::t("settings.title")} } }
+                        tr { td { kbd { "g" } " " kbd { "s" } } td { {state::t("settings.title")} } }
+                        tr { td { kbd { "Alt" } " " kbd { "Q" } } td { {state::t("auth.logout")} } }
+
+                        tr { class: "section-head", td { colspan: 2, {state::t("job.add")} } }
+                        tr { td { kbd { "Ctrl" } " " kbd { "↵" } } td { {state::t("common.save")} } }
+                        tr { td { kbd { "Alt" } " " kbd { "R" } } td { {state::t("job.run_now")} } }
+
+                        tr { class: "section-head", td { colspan: 2, {state::t("picker.title")} } }
+                        tr { td { kbd { "Esc" } } td { {state::t("common.cancel")} } }
+                        tr { td { kbd { "⌫" } } td { {state::t("picker.up")} } }
+
+                        tr { class: "section-head", td { colspan: 2, "" } }
+                        tr { td { kbd { "?" } } td { {state::t("hotkeys.title")} } }
+                    }
+                }
+                button { class: "primary close-btn", r#type: "button", onclick: move |_| open.set(false),
+                    {state::t("common.cancel")} }
+            }
+        }
     }
 }

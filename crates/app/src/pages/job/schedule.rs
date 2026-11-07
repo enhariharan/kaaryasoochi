@@ -10,6 +10,7 @@ use dioxus::prelude::*;
 use kaaryasoochi_core::limits::REPEAT_N_MAX;
 use kaaryasoochi_core::{describe, CronExpr, CronField, SimplePreset};
 
+use crate::icons::*;
 use crate::state::{effective_tz, fmt_datetime, local_input_to_utc, t};
 use crate::Route;
 
@@ -145,7 +146,7 @@ fn CronBuilder(cron: Signal<String>) -> Element {
     let mut raw = use_signal(move || cron.peek().clone());
     let mut raw_err = use_signal(|| None::<String>);
 
-    let tab_button = move |which: Tab, key: &'static str| {
+    let tab_button = move |which: Tab, key: &'static str, icon: Element| {
         rsx! {
             button {
                 r#type: "button", role: "tab", "aria-selected": tab() == which,
@@ -157,6 +158,7 @@ fn CronBuilder(cron: Signal<String>) -> Element {
                     }
                     tab.set(which);
                 },
+                span { class: "ibtn-icon", "aria-hidden": "true", {icon} }
                 {t(key)}
             }
         }
@@ -165,9 +167,9 @@ fn CronBuilder(cron: Signal<String>) -> Element {
     rsx! {
         div { class: "cron-builder",
             div { class: "sched-tabs", role: "tablist",
-                {tab_button(Tab::Simple, "sched.tab.simple")}
-                {tab_button(Tab::Advanced, "sched.tab.advanced")}
-                {tab_button(Tab::Raw, "sched.tab.raw")}
+                {tab_button(Tab::Simple, "sched.tab.simple", icon_calendar())}
+                {tab_button(Tab::Advanced, "sched.tab.advanced", icon_settings())}
+                {tab_button(Tab::Raw, "sched.tab.raw", icon_terminal())}
             }
             match tab() {
                 Tab::Simple => rsx! { SimpleTab { cron } },

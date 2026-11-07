@@ -5,6 +5,8 @@ use dioxus::prelude::*;
 use kaaryasoochi_core::dto::{JobView, RunStatus};
 use kaaryasoochi_core::{Layout, TabOrientation, DEFAULT_CATEGORY};
 
+use super::ILink;
+use crate::icons::*;
 use crate::state::{app_state, fmt_datetime, t, token};
 use crate::{api, Route};
 
@@ -49,6 +51,7 @@ pub fn Home() -> Element {
                         key: "{c.id}", role: "tab", class: if c.name == selected() { "tab active" } else { "tab" },
                         "aria-selected": c.name == selected(),
                         onclick: { let n = c.name.clone(); move |_| selected.set(n.clone()) },
+                        span { class: "ibtn-icon", "aria-hidden": "true", {icon_folder()} }
                         span { dir: "auto", "{c.name}" }
                         span { class: "count", "{all.iter().filter(|j| j.category == c.name).count()}" }
                     }
@@ -73,6 +76,7 @@ pub fn Home() -> Element {
                 }
             }
         }
-        Link { to: Route::JobNew {}, class: "fab", title: t("job.add"), "aria-label": t("job.add"), "+" }
+        ILink { to: Route::JobNew {}, icon: icon_plus(), label: t("job.add"), hotkey: "n / Alt+N",
+            class: "fab", accesskey: "n" }
     }
 }

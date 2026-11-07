@@ -19,6 +19,7 @@ pub struct Model {
     pub timezone: String,
     /// Last time zone reported by the user's device; used when `timezone` is `system`.
     pub system_timezone: String,
+    pub button_display: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -8,10 +8,11 @@ use kaaryasoochi_core::limits::{
     SECRET_QUESTION_MAX, SECRET_QUESTION_MIN,
 };
 use kaaryasoochi_core::timezone;
-use kaaryasoochi_core::{DateFormat, Language, Layout, TabOrientation, Theme, TimeFormat};
+use kaaryasoochi_core::{ButtonDisplay, DateFormat, Language, Layout, TabOrientation, Theme, TimeFormat};
 
-use super::{clean_err, ErrorBanner, PasswordField, Pick};
+use super::{clean_err, ErrorBanner, IBtn, PasswordField, Pick};
 use crate::api;
+use crate::icons::*;
 use crate::state::{app_state, t, token};
 
 fn date_label(v: DateFormat) -> String {
@@ -134,6 +135,10 @@ pub fn Settings() -> Element {
                 label { {t("settings.page_size")}
                     Pick { id: "set-pagesize", value: cfg.page_size.to_string(), options: sizes,
                         onchange: { let cfg = cfg.clone(); move |v: String| save(s.settings, UserSettings { page_size: v.parse().unwrap_or(cfg.page_size), ..cfg.clone() }, error) } } }
+                label { {t("settings.button_display")}
+                    Pick { id: "set-btndisplay", value: cfg.button_display.as_str().to_string(),
+                        options: opts(ButtonDisplay::ALL, |v| v.as_str().into(), |v| t(&format!("settings.button_display.{}", v.as_str())).into()),
+                        onchange: { let cfg = cfg.clone(); move |v: String| save(s.settings, UserSettings { button_display: ButtonDisplay::parse(&v), ..cfg.clone() }, error) } } }
             }
         }
         Profile {}
@@ -176,7 +181,7 @@ fn Profile() -> Element {
                 label { {t("settings.full_name")}
                     input { r#type: "text", dir: "auto", maxlength: FULL_NAME_MAX as i64, value: "{name}", oninput: move |e| name.set(e.value()) } }
                 if let Some(m) = msg() { p { class: "muted", "{m}" } }
-                button { class: "primary", r#type: "submit", {t("common.save")} }
+                IBtn { icon: icon_check(), label: t("common.save"), r#type: "submit", class: "primary" }
             }
         }
     }
@@ -231,7 +236,7 @@ fn ChangePassword(question: String) -> Element {
                 PasswordField { label: "auth.confirm_password", value: confirm, autocomplete: "new-password",
                     minlength: PASSWORD_MIN as i64, maxlength: PASSWORD_MAX as i64 }
                 ErrorBanner { msg }
-                button { class: "primary", disabled: busy(), r#type: "submit", {t("common.save")} }
+                IBtn { icon: icon_check(), label: t("common.save"), r#type: "submit", class: "primary", disabled: busy() }
             }
         }
     }
@@ -291,7 +296,7 @@ fn SecretQuestion(question: String, on_saved: EventHandler<String>) -> Element {
                 PasswordField { label: "settings.secret.new_answer", value: new_answer, autocomplete: "off", maxlength: SECRET_ANSWER_MAX as i64 }
                 ErrorBanner { msg }
                 if done() { p { class: "muted", role: "status", {t("common.saved")} } }
-                button { class: "primary", disabled: busy(), r#type: "submit", {t("common.save")} }
+                IBtn { icon: icon_check(), label: t("common.save"), r#type: "submit", class: "primary", disabled: busy() }
             }
         }
     }
