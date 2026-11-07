@@ -65,6 +65,10 @@ fi
 mkdir -p "$DEST" "$UNITS"
 rsync -a --delete "$REL/web/" "$DEST/web/"
 rsync -a --delete "$REL/linux/app/" "$DEST/linux/"
+# The web server embeds CSS but serves other assets (images) from public/assets/.
+# dx build --desktop places asset files only under linux/app/assets/, not web/public/,
+# so copy them across so the server can serve them to the WebKit window.
+rsync -a "$REL/linux/app/assets/" "$DEST/web/public/assets/"
 cp "$ROOT/deploy/systemd/$SERVER" "$ROOT/deploy/systemd/$APP" "$UNITS/"
 
 # Desktop integration: app-grid icon and launcher entry
