@@ -25,6 +25,11 @@ pub struct AppState {
     pub system_time: Signal<TimeFormat>,
     /// False until the initial session/settings load has finished.
     pub ready: Signal<bool>,
+    /// The signed-in account has no secret question yet (older accounts): show a reminder.
+    pub secret_missing: Signal<bool>,
+    /// Set by the "Set it now" banner: Settings scrolls to the secret-question section and
+    /// focuses its first field (the section is far down the page, so a plain link looked dead).
+    pub focus_secret: Signal<bool>,
 }
 
 pub fn app_state() -> AppState {

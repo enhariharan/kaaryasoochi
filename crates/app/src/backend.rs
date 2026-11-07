@@ -37,19 +37,110 @@ pub async fn db() -> Result<&'static DatabaseConnection, ServerFnError> {
             Ok(n) => eprintln!("marked {n} interrupted run(s) as failed"),
             Err(e) => eprintln!("recovering interrupted runs failed: {e}"),
         }
-        tokio::spawn(scheduler(db.clone()));
+        let scheduler_db = db.clone();
+        tokio::spawn(async move {
+            wait_for_dependencies().await;
+            scheduler(scheduler_db).await;
+        });
         Ok(db)
     })
     .await
 }
 
-/// Claims due jobs and runs each in its own task, so one slow job never delays the others.
+/// How long the scheduler waits for `KAARYASOOCHI_WAIT_FOR_TCP` endpoints before starting anyway.
+const DEPENDENCY_WAIT: Duration = Duration::from_secs(180);
+
+/// Delays the scheduler until the endpoints listed in `KAARYASOOCHI_WAIT_FOR_TCP`
+/// (comma-separated `host:port`, e.g. `127.0.0.1:5432`) accept connections. Right after boot a
+/// catch-up run can fire before a service the job needs (a database) is up, and the job would
+/// fail for a reason that has nothing to do with it. The UI is available meanwhile.
+async fn wait_for_dependencies() {
+    let list = std::env::var("KAARYASOOCHI_WAIT_FOR_TCP").unwrap_or_default();
+    let targets: Vec<String> = list
+        .split(',')
+        .map(str::trim)
+        .filter(|t| !t.is_empty())
+        .map(String::from)
+        .collect();
+    wait_for_tcp(&targets, DEPENDENCY_WAIT).await;
+}
+
+async fn wait_for_tcp(targets: &[String], limit: Duration) {
+    wait_until(targets, limit, Duration::from_millis(500), |t| async move {
+        tcp_up(&t).await
+    })
+    .await;
+}
+
+async fn tcp_up(target: &str) -> bool {
+    tokio::time::timeout(
+        Duration::from_secs(1),
+        tokio::net::TcpStream::connect(target),
+    )
+    .await
+    .is_ok_and(|r| r.is_ok())
+}
+
+/// Polls every `every` until `probe` says each target is up, or `limit` has passed in total.
+async fn wait_until<F, Fut>(targets: &[String], limit: Duration, every: Duration, mut probe: F)
+where
+    F: FnMut(String) -> Fut,
+    Fut: std::future::Future<Output = bool>,
+{
+    let deadline = tokio::time::Instant::now() + limit;
+    for target in targets {
+        loop {
+            if probe(target.clone()).await {
+                eprintln!("dependency {target} is up");
+                break;
+            }
+            if tokio::time::Instant::now() >= deadline {
+                eprintln!("gave up waiting for {target}; starting the scheduler anyway");
+                break;
+            }
+            tokio::time::sleep(every).await;
+        }
+    }
+}
+
+/// A run that starts this much later than it was due is a catch-up run: the server was down
+/// (for example the PC was off at the scheduled time) or otherwise unable to start it on time.
+const LATE_AFTER: chrono::Duration = chrono::Duration::seconds(90);
+
+/// Splits claims into `(late, on_time)`. Late ones are ordered by the time they were due.
+fn partition_late(claims: Vec<Claim>, now: chrono::DateTime<Utc>) -> (Vec<Claim>, Vec<Claim>) {
+    let (mut late, on_time): (Vec<_>, Vec<_>) = claims
+        .into_iter()
+        .partition(|c| now - c.scheduled_for > LATE_AFTER);
+    late.sort_by_key(|c| c.scheduled_for);
+    (late, on_time)
+}
+
+/// Claims due jobs and runs them. On-time runs each get their own task, so one slow job never
+/// delays the others. Catch-up runs (see [`LATE_AFTER`]) are run one after another in the order
+/// they were originally due: after a shutdown, a job that depends on an earlier one (a report
+/// that needs the morning's data sync) must not race it.
 async fn scheduler(db: DatabaseConnection) {
+    eprintln!("scheduler started");
     loop {
-        match services::run::claim_due(&db, Utc::now()).await {
+        let now = Utc::now();
+        match services::run::claim_due(&db, now).await {
             Ok(claims) => {
-                for claim in claims {
+                let (late, on_time) = partition_late(claims, now);
+                for claim in on_time {
                     spawn_run(db.clone(), claim);
+                }
+                if !late.is_empty() {
+                    eprintln!(
+                        "catching up {} missed run(s), in scheduled order",
+                        late.len()
+                    );
+                    let db = db.clone();
+                    tokio::spawn(async move {
+                        for claim in late {
+                            run_claim(&db, claim).await;
+                        }
+                    });
                 }
             }
             Err(e) => eprintln!("scheduler tick failed: {e}"),
@@ -60,20 +151,23 @@ async fn scheduler(db: DatabaseConnection) {
 
 /// Executes a claimed run in its own task, records the outcome and notifies on failure.
 pub fn spawn_run(db: DatabaseConnection, claim: Claim) {
-    tokio::spawn(async move {
-        eprintln!("running job {} ({})", claim.job.id, claim.job.title);
-        let (status, code, message) = execute(&claim.job).await;
-        match services::run::finish(&db, claim.run_id, status, code, message).await {
-            // Only the final failure is worth a notification, not each attempt that will be retried.
-            Ok(f)
-                if status == RunStatus::Failed && claim.job.notify_on_failure && !f.will_retry =>
-            {
-                notify_failure(&claim.job, code).await;
-            }
-            Ok(_) => {}
-            Err(e) => eprintln!("recording result of run {} failed: {e}", claim.run_id),
+    tokio::spawn(async move { run_claim(&db, claim).await });
+}
+
+async fn run_claim(db: &DatabaseConnection, claim: Claim) {
+    eprintln!("running job {} ({})", claim.job.id, claim.job.title);
+    if let Err(e) = services::run::mark_started(db, claim.run_id).await {
+        eprintln!("recording start of run {} failed: {e}", claim.run_id);
+    }
+    let (status, code, message) = execute(&claim.job).await;
+    match services::run::finish(db, claim.run_id, status, code, message).await {
+        // Only the final failure is worth a notification, not each attempt that will be retried.
+        Ok(f) if status == RunStatus::Failed && claim.job.notify_on_failure && !f.will_retry => {
+            notify_failure(&claim.job, code).await;
         }
-    });
+        Ok(_) => {}
+        Err(e) => eprintln!("recording result of run {} failed: {e}", claim.run_id),
+    }
 }
 
 /// Best-effort desktop notification (needs `notify-send` and the user's session bus).
@@ -342,6 +436,89 @@ mod tests {
         let (s, c, m) = execute(&j).await;
         assert_eq!((s, c), (RunStatus::Failed, Some(126)), "{m}");
         assert!(m.to_lowercase().contains("permission denied"), "{m}");
+    }
+
+    #[tokio::test]
+    async fn waiting_polls_until_up_but_never_forever() {
+        use std::sync::atomic::{AtomicU32, Ordering::SeqCst};
+        use std::sync::Arc;
+        let every = Duration::from_millis(10);
+
+        // Down for the first four checks, then up: it keeps polling and then returns.
+        let calls = Arc::new(AtomicU32::new(0));
+        let c = calls.clone();
+        wait_until(
+            &["db:5432".into()],
+            Duration::from_secs(10),
+            every,
+            move |_| {
+                let n = c.fetch_add(1, SeqCst) + 1;
+                async move { n > 4 }
+            },
+        )
+        .await;
+        assert_eq!(calls.load(SeqCst), 5);
+
+        // Never up: gives up at the limit instead of blocking the scheduler forever.
+        let started = std::time::Instant::now();
+        wait_until(
+            &["db:5432".into()],
+            Duration::from_millis(150),
+            every,
+            |_| async { false },
+        )
+        .await;
+        assert!(
+            started.elapsed() >= Duration::from_millis(140)
+                && started.elapsed() < Duration::from_secs(5)
+        );
+
+        // Several targets are each waited for, in order; none configured returns at once.
+        let seen = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let s = seen.clone();
+        wait_until(
+            &["a:1".into(), "b:2".into()],
+            Duration::from_secs(5),
+            every,
+            move |t| {
+                s.lock().unwrap().push(t);
+                async { true }
+            },
+        )
+        .await;
+        assert_eq!(*seen.lock().unwrap(), ["a:1", "b:2"]);
+        wait_until(&[], Duration::from_secs(60), every, |_| async { false }).await;
+    }
+
+    #[tokio::test]
+    async fn tcp_probe_sees_a_listening_socket() {
+        // A bound, listening socket accepts connections at the kernel level.
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap().to_string();
+        assert!(tcp_up(&addr).await);
+        assert!(!tcp_up("not-a-valid-address").await);
+    }
+
+    #[test]
+    fn catch_up_runs_are_split_off_and_ordered_by_when_they_were_due() {
+        let now = Utc::now();
+        let claim = |id: i32, ago: chrono::Duration| Claim {
+            run_id: id,
+            job: job("true", 10),
+            scheduled_for: now - ago,
+        };
+        let (late, on_time) = partition_late(
+            vec![
+                claim(1, chrono::Duration::minutes(10)), // late
+                claim(2, chrono::Duration::seconds(5)),  // on time (normal tick lag)
+                claim(3, chrono::Duration::hours(3)),    // late, and due earliest
+                claim(4, chrono::Duration::seconds(89)), // still on time
+                claim(5, chrono::Duration::seconds(91)), // just late
+            ],
+            now,
+        );
+        assert_eq!(late.iter().map(|c| c.run_id).collect::<Vec<_>>(), [3, 1, 5]);
+        assert_eq!(on_time.iter().map(|c| c.run_id).collect::<Vec<_>>(), [2, 4]);
     }
 
     #[test]

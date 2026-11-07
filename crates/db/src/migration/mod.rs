@@ -7,6 +7,7 @@ mod m20260101_000001_init;
 mod m20260925_000002_commands_timezone;
 mod m20260926_000003_schedule_and_run_options;
 mod m20260927_000004_retries;
+mod m20260928_000005_secret_question;
 
 pub struct Migrator;
 
@@ -18,6 +19,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260925_000002_commands_timezone::Migration),
             Box::new(m20260926_000003_schedule_and_run_options::Migration),
             Box::new(m20260927_000004_retries::Migration),
+            Box::new(m20260928_000005_secret_question::Migration),
         ]
     }
 }

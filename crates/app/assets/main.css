@@ -6,7 +6,7 @@
 .app[data-theme="dark"] { --bg:#111418; --card:#1a1f26; --fg:#e8eaed; --muted:#9aa3ad; --accent:#8c9eff; --border:#2b323b; }
 * { box-sizing: border-box; }
 body { margin:0; font-family: system-ui, "Noto Sans", "Noto Sans Tamil", "Noto Sans Malayalam", "Noto Sans Telugu", "Noto Sans Devanagari", "Noto Sans Arabic", "Noto Naskh Arabic", "Noto Sans Hebrew", sans-serif; }
-.app { min-height:100vh; background:var(--bg); color:var(--fg); }
+.app { display:flow-root; min-height:100vh; background:var(--bg); color:var(--fg); }
 main { max-width: 1100px; margin: 0 auto; padding: 1rem; }
 a { color: var(--accent); }
 .muted { color: var(--muted); } .center { text-align:center; padding:2rem; }
@@ -127,3 +127,10 @@ select { appearance:none; -webkit-appearance:none; padding-inline-end:2.2rem; ba
          background-image:var(--select-arrow); background-repeat:no-repeat; background-size:14px; background-position:calc(100% - .8rem) 50%; }
 [dir="rtl"] select { background-position:.8rem 50%; }
 select option { background:var(--card); color:var(--fg); }
+
+/* secret question / recovery */
+.banner { background:var(--accent); color:#fff; padding:.5rem 1rem; text-align:center; }
+.banner a { color:#fff; font-weight:600; }
+.question { border:1px solid var(--border); border-radius:8px; padding:.5rem .8rem; background:var(--bg); }
+.question p { margin:.15rem 0 0; font-weight:600; }
+.small { font-size:.8rem; }

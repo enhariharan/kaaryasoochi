@@ -15,7 +15,7 @@ user 1───* session
 
 | Table | Columns |
 |---|---|
-| `user` | id, username (unique, lowercase), full_name, password_hash, is_admin, created_at |
+| `user` | id, username (unique, lowercase), full_name, password_hash, is_admin, secret_question, secret_answer_hash (Argon2id of the normalised answer), recovery_failures, recovery_locked_until, reset_token_hash (SHA-256, single use), reset_token_expires, created_at |
 | `session` | token_hash (PK, SHA-256 hex), user_id, expires_at |
 | `passkey` | id, user_id, credential_id (unique), credential (JSON), label, created_at |
 | `user_settings` | user_id (PK), theme, tab_orientation, job_layout, date_format, time_format, page_size, language, timezone (`system`/IANA), system_timezone (device-reported) |

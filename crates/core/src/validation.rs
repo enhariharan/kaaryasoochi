@@ -56,6 +56,12 @@ pub enum ValidationError {
     Password,
     #[error("full name must be at most {FULL_NAME_MAX} characters")]
     FullNameTooLong,
+    #[error("secret question must be {SECRET_QUESTION_MIN}-{SECRET_QUESTION_MAX} characters")]
+    SecretQuestion,
+    #[error("secret answer must be {SECRET_ANSWER_MIN}-{SECRET_ANSWER_MAX} characters")]
+    SecretAnswer,
+    #[error("the passwords do not match")]
+    PasswordMismatch,
 }
 
 impl From<RepeatError> for ValidationError {
@@ -200,6 +206,41 @@ pub fn validate_password(p: &str) -> Result<(), ValidationError> {
         .ok_or(ValidationError::Password)
 }
 
+/// Answers are compared loosely so "Blue  Whale " and "blue whale" are the same answer:
+/// surrounding and repeated whitespace is dropped and the text is lower-cased.
+pub fn normalize_answer(a: &str) -> String {
+    a.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase()
+}
+
+pub fn validate_secret_question(q: &str) -> Result<String, ValidationError> {
+    let q = q.split_whitespace().collect::<Vec<_>>().join(" ");
+    (SECRET_QUESTION_MIN..=SECRET_QUESTION_MAX)
+        .contains(&q.chars().count())
+        .then_some(q)
+        .ok_or(ValidationError::SecretQuestion)
+}
+
+/// Returns the normalised answer, which is what gets hashed and compared.
+pub fn validate_secret_answer(a: &str) -> Result<String, ValidationError> {
+    let a = normalize_answer(a);
+    (SECRET_ANSWER_MIN..=SECRET_ANSWER_MAX)
+        .contains(&a.chars().count())
+        .then_some(a)
+        .ok_or(ValidationError::SecretAnswer)
+}
+
+/// A new password must be valid and typed the same twice.
+pub fn validate_new_password(new: &str, confirm: &str) -> Result<(), ValidationError> {
+    validate_password(new)?;
+    if new != confirm {
+        return Err(ValidationError::PasswordMismatch);
+    }
+    Ok(())
+}
+
 pub fn validate_full_name(n: &str) -> Result<String, ValidationError> {
     let n = n.trim();
     (n.chars().count() <= FULL_NAME_MAX)
@@ -284,6 +325,38 @@ mod tests {
         i.repeat = Some(Repeat::EveryDays(0));
         assert!(matches!(i.validate(now), Err(ValidationError::Repeat(_))));
     }
+    #[test]
+    fn secret_question_and_answer() {
+        assert_eq!(normalize_answer("  Blue \t Whale\n"), "blue whale");
+        assert_eq!(normalize_answer("ÉCOLE  Nationale"), "école nationale");
+        assert_eq!(
+            validate_secret_answer(" Blue   WHALE ").unwrap(),
+            "blue whale"
+        );
+        assert!(validate_secret_answer("ab").is_err(), "too short");
+        assert!(validate_secret_answer("   ").is_err(), "blank");
+        assert!(validate_secret_answer(&"x".repeat(SECRET_ANSWER_MAX + 1)).is_err());
+        assert_eq!(
+            validate_secret_question("  What  was my first  school? ").unwrap(),
+            "What was my first school?"
+        );
+        assert!(validate_secret_question("why?").is_err());
+        assert!(validate_secret_question(&"q".repeat(SECRET_QUESTION_MAX + 1)).is_err());
+    }
+
+    #[test]
+    fn new_password_must_match_its_confirmation() {
+        assert!(validate_new_password("long-enough-pw", "long-enough-pw").is_ok());
+        assert_eq!(
+            validate_new_password("long-enough-pw", "long-enough-px"),
+            Err(ValidationError::PasswordMismatch)
+        );
+        assert_eq!(
+            validate_new_password("short", "short"),
+            Err(ValidationError::Password)
+        );
+    }
+
     #[test]
     fn credentials() {
         assert_eq!(validate_username(" Alice ").unwrap(), "alice");

@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Hariharan Narayanan
+
+# Kaaryasoochi desktop window. Optional: only useful in a graphical session, and NOT needed for
+# jobs to run (the server unit does that). Enable to open the app at every login:
+#   systemctl --user enable kaaryasoochi-app.service
+[Unit]
+Description=Kaaryasoochi desktop app
+Wants=kaaryasoochi-server.service
+After=kaaryasoochi-server.service graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.local/share/kaaryasoochi/app/linux
+ExecStart=%h/.local/share/kaaryasoochi/app/linux/kaaryasoochi-app
+
+[Install]
+WantedBy=graphical-session.target

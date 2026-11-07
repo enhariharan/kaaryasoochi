@@ -114,6 +114,10 @@ fn RunRow(run: RunView) -> Element {
             td {
                 bdi { dir: "ltr", "{fmt_datetime(run.started_at)}" }
                 if run.attempt > 1 { span { class: "muted", " · " {t("hist.attempt")} " {run.attempt}" } }
+                // A run that started long after it was due is a catch-up (the server or PC was off).
+                if run.started_at - run.scheduled_for > chrono::Duration::seconds(90) {
+                    span { class: "muted", " · " {t("hist.scheduled_for")} " " bdi { dir: "ltr", "{fmt_datetime(run.scheduled_for)}" } }
+                }
             }
             td { span { class: "status {run.status.as_str()}", "{status_icon(run.status)} {status_label(run.status)}" } }
             td { class: "muted", if let Some(c) = run.exit_code { "{c}" } else { "—" } }

@@ -23,6 +23,11 @@ pub const USERNAME_MIN: usize = 3;
 pub const USERNAME_MAX: usize = 32;
 pub const PASSWORD_MIN: usize = 10;
 pub const PASSWORD_MAX: usize = 128;
+/// Secret question (shown on the recovery screen) and answer (measured after normalisation).
+pub const SECRET_QUESTION_MIN: usize = 5;
+pub const SECRET_QUESTION_MAX: usize = 200;
+pub const SECRET_ANSWER_MIN: usize = 3;
+pub const SECRET_ANSWER_MAX: usize = 100;
 /// Upper bound for the "n" in "every n <unit>" to keep arithmetic sane.
 pub const REPEAT_N_MAX: u32 = 10_000;
 pub const PAGE_SIZE_DEFAULT: u32 = 10;

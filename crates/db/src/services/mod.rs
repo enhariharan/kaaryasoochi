@@ -4,5 +4,6 @@
 pub mod auth;
 pub mod category;
 pub mod job;
+pub mod recovery;
 pub mod run;
 pub mod settings;

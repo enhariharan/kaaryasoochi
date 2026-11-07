@@ -15,6 +15,8 @@ pub struct UserView {
     pub full_name: String,
     /// Administrators may attach shell commands to jobs.
     pub is_admin: bool,
+    /// The account's secret question; empty when none has been set yet (older accounts).
+    pub secret_question: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

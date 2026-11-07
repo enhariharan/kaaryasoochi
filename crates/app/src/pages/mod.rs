@@ -2,11 +2,13 @@
 // Copyright (c) 2026 Hariharan Narayanan
 
 mod auth;
+mod forgot;
 mod home;
 mod job;
 mod settings;
 
 pub use auth::{Login, Register};
+pub use forgot::Forgot;
 pub use home::Home;
 pub use job::{JobEdit, JobNew};
 pub use settings::Settings;

@@ -34,11 +34,26 @@ fn input(title: &str, category: &str) -> JobInput {
 #[tokio::test]
 async fn auth_flow() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "Alice", "correct horse", "Alice A")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "Alice",
+        "correct horse",
+        "Alice A",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     assert!(matches!(
-        auth::register(&db, "alice", "correct horse", "").await,
+        auth::register(
+            &db,
+            "alice",
+            "correct horse",
+            "",
+            "What was the name of my first school?",
+            "St Mary"
+        )
+        .await,
         Err(DbError::UsernameTaken)
     ));
     assert!(matches!(
@@ -47,9 +62,16 @@ async fn auth_flow() {
     ));
     let (tok, _) = auth::login(&db, "ALICE", "correct horse").await.unwrap();
     assert_eq!(auth::user_for_token(&db, &tok).await.unwrap().id, u.id);
-    auth::change_password(&db, u.id, "correct horse", "battery staple")
-        .await
-        .unwrap();
+    auth::change_password(
+        &db,
+        u.id,
+        "correct horse",
+        "St Mary",
+        "battery staple",
+        "battery staple",
+    )
+    .await
+    .unwrap();
     assert!(
         auth::user_for_token(&db, &tok).await.is_err(),
         "sessions revoked on password change"
@@ -62,9 +84,16 @@ async fn auth_flow() {
 #[tokio::test]
 async fn defaults_on_register() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "bob", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "bob",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     let cats = category::list(&db, u.id).await.unwrap();
     assert_eq!(cats.len(), 1);
     assert_eq!(cats[0].name, DEFAULT_CATEGORY);
@@ -86,12 +115,26 @@ async fn defaults_on_register() {
 #[tokio::test]
 async fn jobs_categories_and_isolation() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let a = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
-    let b = auth::register(&db, "bobby", "correct horse", "")
-        .await
-        .unwrap();
+    let a = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
+    let b = auth::register(
+        &db,
+        "bobby",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
 
     let j = job::create(&db, a.id, input("Backup", "")).await.unwrap();
     assert_eq!(j.category, DEFAULT_CATEGORY);
@@ -140,9 +183,16 @@ async fn jobs_categories_and_isolation() {
 #[tokio::test]
 async fn claim_records_running_and_advances() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     let mut i = input("Tick", "");
     i.repeat = Some(Repeat::EveryMinutes(10));
     let j = job::create(&db, u.id, i).await.unwrap();
@@ -179,9 +229,16 @@ async fn claim_records_running_and_advances() {
 #[tokio::test]
 async fn overlapping_run_is_skipped_and_restart_recovers() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     let mut i = input("Slow", "");
     i.repeat = Some(Repeat::EveryMinutes(1));
     let j = job::create(&db, u.id, i).await.unwrap();
@@ -204,9 +261,16 @@ async fn overlapping_run_is_skipped_and_restart_recovers() {
 #[tokio::test]
 async fn weekday_schedule_runs_in_job_timezone() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     let mut s = settings::get(&db, u.id).await.unwrap();
     s.timezone = "Asia/Kolkata".into();
     settings::update(&db, u.id, s).await.unwrap();
@@ -274,9 +338,16 @@ async fn weekday_schedule_runs_in_job_timezone() {
 #[tokio::test]
 async fn timezone_setting_resolution() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     // Default follows the device once it has reported a zone.
     settings::set_system_timezone(&db, u.id, "Asia/Tokyo")
         .await
@@ -309,12 +380,26 @@ async fn timezone_setting_resolution() {
 #[tokio::test]
 async fn only_admin_can_set_commands() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let admin = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
-    let other = auth::register(&db, "bobby", "correct horse", "")
-        .await
-        .unwrap();
+    let admin = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
+    let other = auth::register(
+        &db,
+        "bobby",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     assert!((admin.is_admin, other.is_admin) == (true, false));
 
     let mut i = input("Run", "");
@@ -331,9 +416,16 @@ async fn only_admin_can_set_commands() {
 #[tokio::test]
 async fn history_paginates() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     let mut i = input("Often", "");
     i.repeat = Some(Repeat::EverySeconds(1));
     let j = job::create(&db, u.id, i).await.unwrap();
@@ -360,9 +452,16 @@ async fn history_paginates() {
 async fn cron_schedule_uses_job_timezone_and_start_from() {
     use chrono::Timelike;
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     let mut s = settings::get(&db, u.id).await.unwrap();
     s.timezone = "Asia/Kolkata".into();
     settings::update(&db, u.id, s).await.unwrap();
@@ -402,12 +501,26 @@ async fn cron_schedule_uses_job_timezone_and_start_from() {
 #[tokio::test]
 async fn script_mode_and_working_dir_are_admin_only() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let admin = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
-    let other = auth::register(&db, "bobby", "correct horse", "")
-        .await
-        .unwrap();
+    let admin = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
+    let other = auth::register(
+        &db,
+        "bobby",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     let mut i = input("Script", "");
     i.run_mode = RunMode::Script;
     i.script_path = "/opt/run.sh".into();
@@ -446,9 +559,16 @@ async fn script_mode_and_working_dir_are_admin_only() {
 #[tokio::test]
 async fn run_now_leaves_the_schedule_alone_and_refuses_overlap() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     let mut i = input("Manual", "");
     i.repeat = Some(Repeat::EveryDays(1));
     let j = job::create(&db, u.id, i).await.unwrap();
@@ -482,9 +602,16 @@ async fn run_now_leaves_the_schedule_alone_and_refuses_overlap() {
     let last = sum.last.unwrap();
     assert_eq!((last.status, last.exit_code), (RunStatus::Failed, Some(2)));
     // Someone else's job is not reachable.
-    let other = auth::register(&db, "bobby", "correct horse", "")
-        .await
-        .unwrap();
+    let other = auth::register(
+        &db,
+        "bobby",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     assert!(matches!(
         run::start_manual(&db, other.id, j.id).await,
         Err(DbError::NotFound)
@@ -522,9 +649,16 @@ fn retrying(count: u32, delay: u32) -> JobInput {
 #[tokio::test]
 async fn failed_run_is_retried_the_configured_number_of_times() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     let j = job::create(&db, u.id, retrying(2, 60)).await.unwrap();
     assert!(j.retry_on_failure && (j.retry_count, j.retry_delay_secs) == (2, 60));
 
@@ -572,9 +706,16 @@ async fn failed_run_is_retried_the_configured_number_of_times() {
 #[tokio::test]
 async fn retry_stops_on_success_and_is_opt_in() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     let j = job::create(&db, u.id, retrying(3, 60)).await.unwrap();
     assert_eq!(fail_all(&db, j.first_run).await, [(1, true)]);
     let mut c = run::claim_due(&db, Utc::now() + Duration::minutes(2))
@@ -603,9 +744,16 @@ async fn retry_stops_on_success_and_is_opt_in() {
 #[tokio::test]
 async fn new_occurrence_manual_run_and_disabling_drop_a_pending_retry() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
 
     // The next scheduled occurrence wins over a retry that is still waiting.
     let j = job::create(&db, u.id, retrying(3, 3600)).await.unwrap();
@@ -621,9 +769,16 @@ async fn new_occurrence_manual_run_and_disabling_drop_a_pending_retry() {
     // A manual run replaces a pending retry. (Own database: the fake clock above would
     // otherwise make the first job's pending retry fall due here as well.)
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     let m = job::create(&db, u.id, retrying(3, 3600)).await.unwrap();
     assert_eq!(fail_all(&db, m.first_run).await, [(1, true)]);
     assert!(job::get(&db, u.id, m.id).await.unwrap().retry_at.is_some());
@@ -632,9 +787,16 @@ async fn new_occurrence_manual_run_and_disabling_drop_a_pending_retry() {
 
     // Unticking "retry on failure" cancels a pending retry.
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     let d = job::create(&db, u.id, retrying(3, 3600)).await.unwrap();
     assert_eq!(fail_all(&db, d.first_run).await, [(1, true)]);
     let mut off = retrying(3, 3600);
@@ -647,9 +809,16 @@ async fn new_occurrence_manual_run_and_disabling_drop_a_pending_retry() {
 #[tokio::test]
 async fn summary_reports_the_pending_retry() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     let j = job::create(&db, u.id, retrying(1, 90)).await.unwrap();
     assert_eq!(run::summary(&db, u.id, j.id).await.unwrap().retry_at, None);
     fail_all(&db, j.first_run).await;
@@ -660,9 +829,16 @@ async fn summary_reports_the_pending_retry() {
 #[tokio::test]
 async fn default_category_is_always_last_and_the_rest_alphabetical() {
     let db = connect("sqlite::memory:").await.unwrap();
-    let u = auth::register(&db, "alice", "correct horse", "")
-        .await
-        .unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
     // Created out of order; "Alpha"/"Beta" also sort before "Default" alphabetically, while
     // "Ops"/"Zeta" sort after it, so this only passes if Default is pinned last.
     for name in ["Zeta", "Alpha", "Ops", "Beta"] {
@@ -675,4 +851,544 @@ async fn default_category_is_always_last_and_the_rest_alphabetical() {
         .map(|c| c.name)
         .collect();
     assert_eq!(names, ["Alpha", "Beta", "Ops", "Zeta", DEFAULT_CATEGORY]);
+}
+
+#[tokio::test]
+async fn downtime_gives_one_catch_up_run_with_the_original_scheduled_time() {
+    let db = connect("sqlite::memory:").await.unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
+    let mut i = input("Daily", "");
+    i.repeat = Some(Repeat::EveryDays(1));
+    let j = job::create(&db, u.id, i).await.unwrap();
+
+    // The machine was off for three days and comes back: one run, not three.
+    let back = j.first_run + Duration::days(3) + Duration::hours(2);
+    let claims = run::claim_due(&db, back).await.unwrap();
+    assert_eq!(claims.len(), 1);
+    assert_eq!(
+        claims[0].scheduled_for, j.first_run,
+        "keeps the time it was originally due"
+    );
+    assert!(
+        back - claims[0].scheduled_for > Duration::days(3),
+        "recognisably late"
+    );
+    // ...and the schedule resumes at the next future slot, not the missed ones.
+    let next = job::get(&db, u.id, j.id).await.unwrap().next_run.unwrap();
+    assert!(next > back && next <= back + Duration::days(1));
+    assert!(run::claim_due(&db, back).await.unwrap().is_empty());
+
+    // The history records when it was due, which is what the UI shows for a late run.
+    let items = run::history(&db, u.id, j.id, 1, 10).await.unwrap().items;
+    assert_eq!((items.len(), items[0].scheduled_for), (1, j.first_run));
+
+    // A one-off job whose time passed while the machine was off also runs once on return.
+    let once = job::create(&db, u.id, input("Once", "")).await.unwrap();
+    let claims = run::claim_due(&db, once.first_run + Duration::days(9))
+        .await
+        .unwrap();
+    assert_eq!(claims.len(), 1);
+    assert_eq!(claims[0].job.id, once.id);
+}
+
+#[tokio::test]
+async fn started_at_is_reset_when_execution_actually_begins() {
+    let db = connect("sqlite::memory:").await.unwrap();
+    let u = auth::register(
+        &db,
+        "alice",
+        "correct horse",
+        "",
+        "What was the name of my first school?",
+        "St Mary",
+    )
+    .await
+    .unwrap();
+    let mut i = input("Queued", "");
+    i.repeat = Some(Repeat::EveryDays(1));
+    let j = job::create(&db, u.id, i).await.unwrap();
+    // Claimed at a simulated time...
+    let c = run::claim_due(&db, j.first_run).await.unwrap().remove(0);
+    let claimed_at = run::history(&db, u.id, j.id, 1, 5).await.unwrap().items[0].started_at;
+    // ...but it only really starts now, after waiting its turn.
+    run::mark_started(&db, c.run_id).await.unwrap();
+    let after = run::history(&db, u.id, j.id, 1, 5).await.unwrap().items[0].clone();
+    // (The simulated claim time is an hour ahead of the real clock, hence "different", not "later".)
+    assert_ne!(after.started_at, claimed_at, "started_at was rewritten");
+    assert!(after.started_at <= Utc::now() && Utc::now() - after.started_at < Duration::seconds(5));
+    assert_eq!(
+        after.scheduled_for, j.first_run,
+        "the due time is untouched"
+    );
+    assert_eq!(after.status, RunStatus::Running);
+}
+
+// ---------------------------------------------------------------- secret question / recovery
+
+const Q: &str = "What was the name of my first school?";
+
+async fn user_with_secret(db: &crate::DatabaseConnection) -> kaaryasoochi_core::dto::UserView {
+    auth::register(db, "alice", "correct horse", "Alice", Q, "St Mary")
+        .await
+        .unwrap()
+}
+
+#[tokio::test]
+async fn registration_requires_a_secret_question_and_answer() {
+    let db = connect("sqlite::memory:").await.unwrap();
+    for (q, a) in [
+        ("", "St Mary"),
+        ("Q?", "St Mary"),
+        (Q, ""),
+        (Q, "ab"),
+        (Q, "   "),
+    ] {
+        assert!(
+            matches!(
+                auth::register(&db, "bob", "correct horse", "", q, a).await,
+                Err(DbError::Validation(_))
+            ),
+            "{q:?} / {a:?} must be rejected"
+        );
+    }
+    let u = user_with_secret(&db).await;
+    assert_eq!(u.secret_question, Q);
+    // The answer is only stored hashed, in normalised form.
+    let row = crate::entity::user::Entity::find_by_id(u.id)
+        .one(&db)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        row.secret_answer_hash.starts_with("$argon2"),
+        "{}",
+        row.secret_answer_hash
+    );
+    assert!(!row.secret_answer_hash.to_lowercase().contains("mary"));
+}
+
+#[tokio::test]
+async fn forgot_password_flow_end_to_end() {
+    let db = connect("sqlite::memory:").await.unwrap();
+    let u = user_with_secret(&db).await;
+    let (old_session, _) = auth::login(&db, "alice", "correct horse").await.unwrap();
+
+    // 1. the question is shown (username matching is case-insensitive)
+    assert_eq!(recovery::question_for(&db, " ALICE ").await.unwrap(), Q);
+    // 2. a wrong answer gives nothing; the right one (loosely matched) gives a token
+    let now = Utc::now();
+    assert!(matches!(
+        recovery::start_recovery_at(&db, "alice", "St Joseph", now).await,
+        Err(DbError::WrongAnswer)
+    ));
+    let token = recovery::start_recovery_at(&db, "alice", "  st   MARY ", now)
+        .await
+        .unwrap();
+    // 3. the new password must be confirmed, and long enough
+    assert!(matches!(
+        recovery::finish_recovery_at(&db, &token, "brand new password", "brand new passwor", now)
+            .await,
+        Err(DbError::Validation(_))
+    ));
+    assert!(matches!(
+        recovery::finish_recovery_at(&db, &token, "short", "short", now).await,
+        Err(DbError::Validation(_))
+    ));
+    recovery::finish_recovery_at(&db, &token, "brand new password", "brand new password", now)
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        auth::login(&db, "alice", "correct horse").await,
+        Err(DbError::InvalidCredentials)
+    ));
+    assert_eq!(
+        auth::login(&db, "alice", "brand new password")
+            .await
+            .unwrap()
+            .1
+            .id,
+        u.id
+    );
+    assert!(
+        auth::user_for_token(&db, &old_session).await.is_err(),
+        "old sessions signed out"
+    );
+    // The token is single use.
+    assert!(matches!(
+        recovery::finish_recovery_at(
+            &db,
+            &token,
+            "another new password",
+            "another new password",
+            now
+        )
+        .await,
+        Err(DbError::InvalidToken)
+    ));
+    // Garbage and empty tokens never work.
+    for t in ["", "nope", &"0".repeat(64)] {
+        assert!(matches!(
+            recovery::finish_recovery_at(&db, t, "brand new password", "brand new password", now)
+                .await,
+            Err(DbError::InvalidToken)
+        ));
+    }
+}
+
+#[tokio::test]
+async fn recovery_token_expires() {
+    let db = connect("sqlite::memory:").await.unwrap();
+    user_with_secret(&db).await;
+    let now = Utc::now();
+    let token = recovery::start_recovery_at(&db, "alice", "st mary", now)
+        .await
+        .unwrap();
+    let late = now + Duration::minutes(recovery::RESET_TOKEN_MINUTES + 1);
+    assert!(matches!(
+        recovery::finish_recovery_at(
+            &db,
+            &token,
+            "brand new password",
+            "brand new password",
+            late
+        )
+        .await,
+        Err(DbError::InvalidToken)
+    ));
+    // An expired token is consumed too: it cannot be revived by trying again "in time".
+    assert!(matches!(
+        recovery::finish_recovery_at(&db, &token, "brand new password", "brand new password", now)
+            .await,
+        Err(DbError::InvalidToken)
+    ));
+    assert!(
+        auth::login(&db, "alice", "correct horse").await.is_ok(),
+        "password unchanged"
+    );
+}
+
+#[tokio::test]
+async fn wrong_answers_lock_recovery_for_a_while() {
+    let db = connect("sqlite::memory:").await.unwrap();
+    user_with_secret(&db).await;
+    let now = Utc::now();
+    for _ in 0..recovery::MAX_ANSWER_FAILURES {
+        assert!(matches!(
+            recovery::start_recovery_at(&db, "alice", "wrong", now).await,
+            Err(DbError::WrongAnswer)
+        ));
+    }
+    // Locked: even the correct answer is refused, and the message says for how long.
+    match recovery::start_recovery_at(&db, "alice", "st mary", now).await {
+        Err(DbError::Locked(m)) => assert_eq!(m, recovery::LOCKOUT_MINUTES),
+        other => panic!("expected Locked, got {other:?}"),
+    }
+    let mid = now + Duration::minutes(recovery::LOCKOUT_MINUTES - 5);
+    assert!(matches!(
+        recovery::start_recovery_at(&db, "alice", "st mary", mid).await,
+        Err(DbError::Locked(5))
+    ));
+    // After the lockout the correct answer works again, and the counter starts from zero.
+    let after = now + Duration::minutes(recovery::LOCKOUT_MINUTES + 1);
+    assert!(recovery::start_recovery_at(&db, "alice", "st mary", after)
+        .await
+        .is_ok());
+    for _ in 0..recovery::MAX_ANSWER_FAILURES - 1 {
+        let _ = recovery::start_recovery_at(&db, "alice", "wrong", after).await;
+    }
+    assert!(
+        recovery::start_recovery_at(&db, "alice", "st mary", after)
+            .await
+            .is_ok(),
+        "4 misses do not lock"
+    );
+}
+
+#[tokio::test]
+async fn unknown_users_and_users_without_a_secret_look_the_same() {
+    let db = connect("sqlite::memory:").await.unwrap();
+    let u = user_with_secret(&db).await;
+    let ghost = recovery::question_for(&db, "nobody").await.unwrap();
+    assert_ne!(ghost, Q);
+    assert_eq!(
+        ghost,
+        recovery::question_for(&db, "NOBODY ").await.unwrap(),
+        "stable per name"
+    );
+    assert!(matches!(
+        recovery::start_recovery(&db, "nobody", "anything").await,
+        Err(DbError::WrongAnswer)
+    ));
+
+    // An account that predates the feature (no secret) is indistinguishable from an unknown one.
+    sea_orm::ConnectionTrait::execute_unprepared(
+        &db,
+        &format!(
+            "UPDATE user SET secret_question='', secret_answer_hash='' WHERE id={}",
+            u.id
+        ),
+    )
+    .await
+    .unwrap();
+    let q = recovery::question_for(&db, "alice").await.unwrap();
+    assert_eq!(q, recovery::question_for(&db, "alice").await.unwrap());
+    assert_ne!(q, "");
+    assert!(matches!(
+        recovery::start_recovery(&db, "alice", "").await,
+        Err(DbError::WrongAnswer)
+    ));
+    assert!(matches!(
+        recovery::start_recovery(&db, "alice", "st mary").await,
+        Err(DbError::WrongAnswer)
+    ));
+}
+
+#[tokio::test]
+async fn changing_the_password_needs_password_answer_and_confirmation() {
+    let db = connect("sqlite::memory:").await.unwrap();
+    let u = user_with_secret(&db).await;
+    let (sess, _) = auth::login(&db, "alice", "correct horse").await.unwrap();
+    let now = Utc::now();
+    let change = |cur: &'static str, ans: &'static str, new: &'static str, conf: &'static str| {
+        let db = &db;
+        async move { auth::change_password_at(db, u.id, cur, ans, new, conf, now).await }
+    };
+
+    assert!(matches!(
+        change(
+            "correct horse",
+            "St Mary",
+            "new password 1",
+            "new password 2"
+        )
+        .await,
+        Err(DbError::Validation(_))
+    ));
+    assert!(matches!(
+        change(
+            "wrong current",
+            "St Mary",
+            "new password 1",
+            "new password 1"
+        )
+        .await,
+        Err(DbError::InvalidCredentials)
+    ));
+    assert!(matches!(
+        change("correct horse", "wrong", "new password 1", "new password 1").await,
+        Err(DbError::WrongAnswer)
+    ));
+    assert!(
+        auth::user_for_token(&db, &sess).await.is_ok(),
+        "nothing changed yet"
+    );
+    // A wrong *current password* must not be usable to burn answer attempts.
+    for _ in 0..10 {
+        let _ = change("wrong current", "wrong", "new password 1", "new password 1").await;
+    }
+    assert!(change(
+        "correct horse",
+        "st mary",
+        "new password 1",
+        "new password 1"
+    )
+    .await
+    .is_ok());
+    assert!(auth::login(&db, "alice", "new password 1").await.is_ok());
+    assert!(
+        auth::user_for_token(&db, &sess).await.is_err(),
+        "sessions revoked"
+    );
+
+    // Answer attempts made through "change password" lock the same way.
+    for _ in 0..recovery::MAX_ANSWER_FAILURES {
+        let _ = auth::change_password_at(
+            &db,
+            u.id,
+            "new password 1",
+            "wrong",
+            "x new password",
+            "x new password",
+            now,
+        )
+        .await;
+    }
+    assert!(matches!(
+        auth::change_password_at(
+            &db,
+            u.id,
+            "new password 1",
+            "st mary",
+            "x new password",
+            "x new password",
+            now
+        )
+        .await,
+        Err(DbError::Locked(_))
+    ));
+}
+
+#[tokio::test]
+async fn an_account_without_a_secret_must_set_one_before_changing_its_password() {
+    let db = connect("sqlite::memory:").await.unwrap();
+    let u = user_with_secret(&db).await;
+    sea_orm::ConnectionTrait::execute_unprepared(
+        &db,
+        &format!(
+            "UPDATE user SET secret_question='', secret_answer_hash='' WHERE id={}",
+            u.id
+        ),
+    )
+    .await
+    .unwrap();
+    assert!(matches!(
+        auth::change_password(
+            &db,
+            u.id,
+            "correct horse",
+            "anything",
+            "new password 1",
+            "new password 1"
+        )
+        .await,
+        Err(DbError::SecretNotSet)
+    ));
+    // Setting one needs only the password (there is no old answer to give)...
+    assert_eq!(
+        auth::login(&db, "alice", "correct horse")
+            .await
+            .unwrap()
+            .1
+            .secret_question,
+        ""
+    );
+    let q = recovery::set_secret(
+        &db,
+        u.id,
+        "correct horse",
+        "",
+        "Where did I grow up?",
+        "Chennai",
+    )
+    .await
+    .unwrap();
+    assert_eq!(q, "Where did I grow up?");
+    assert_eq!(
+        auth::login(&db, "alice", "correct horse")
+            .await
+            .unwrap()
+            .1
+            .secret_question,
+        q
+    );
+    // ...and from then on everything works.
+    assert!(auth::change_password(
+        &db,
+        u.id,
+        "correct horse",
+        "chennai",
+        "new password 1",
+        "new password 1"
+    )
+    .await
+    .is_ok());
+}
+
+#[tokio::test]
+async fn changing_the_secret_needs_password_and_current_answer() {
+    let db = connect("sqlite::memory:").await.unwrap();
+    let u = user_with_secret(&db).await;
+    let now = Utc::now();
+    let set = |pw: &'static str, cur: &'static str, q: &'static str, a: &'static str| {
+        let db = &db;
+        async move { recovery::set_secret_at(db, u.id, pw, cur, q, a, now).await }
+    };
+    assert!(matches!(
+        set("wrong pw", "st mary", "Where did I grow up?", "Chennai").await,
+        Err(DbError::InvalidCredentials)
+    ));
+    assert!(matches!(
+        set("correct horse", "wrong", "Where did I grow up?", "Chennai").await,
+        Err(DbError::WrongAnswer)
+    ));
+    assert!(matches!(
+        set("correct horse", "st mary", "Q?", "Chennai").await,
+        Err(DbError::Validation(_))
+    ));
+    assert!(matches!(
+        set("correct horse", "st mary", "Where did I grow up?", "ab").await,
+        Err(DbError::Validation(_))
+    ));
+    assert_eq!(
+        recovery::question_for(&db, "alice").await.unwrap(),
+        Q,
+        "unchanged so far"
+    );
+
+    set(
+        "correct horse",
+        "St Mary",
+        "Where did I grow up?",
+        "Chennai",
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        recovery::question_for(&db, "alice").await.unwrap(),
+        "Where did I grow up?"
+    );
+    assert!(
+        matches!(
+            recovery::start_recovery_at(&db, "alice", "st mary", now).await,
+            Err(DbError::WrongAnswer)
+        ),
+        "old answer is dead"
+    );
+    assert!(recovery::start_recovery_at(&db, "alice", " CHENNAI ", now)
+        .await
+        .is_ok());
+}
+
+#[tokio::test]
+async fn operator_reset_signs_everyone_out_and_lists_accounts() {
+    let db = connect("sqlite::memory:").await.unwrap();
+    user_with_secret(&db).await;
+    let (sess, _) = auth::login(&db, "alice", "correct horse").await.unwrap();
+    // Lock the account first: the operator reset must clear that too.
+    for _ in 0..recovery::MAX_ANSWER_FAILURES {
+        let _ = recovery::start_recovery(&db, "alice", "wrong").await;
+    }
+    assert!(matches!(
+        recovery::admin_reset_password(&db, "alice", "short").await,
+        Err(DbError::Validation(_))
+    ));
+    assert!(matches!(
+        recovery::admin_reset_password(&db, "ghost", "a new password").await,
+        Err(DbError::NotFound)
+    ));
+    recovery::admin_reset_password(&db, " Alice ", "a new password")
+        .await
+        .unwrap();
+    assert!(auth::user_for_token(&db, &sess).await.is_err());
+    assert!(auth::login(&db, "alice", "a new password").await.is_ok());
+    assert!(
+        recovery::start_recovery(&db, "alice", "st mary")
+            .await
+            .is_ok(),
+        "lockout cleared"
+    );
+    assert_eq!(
+        recovery::list_users(&db).await.unwrap(),
+        [("alice".to_string(), true, true)]
+    );
 }

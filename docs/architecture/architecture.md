@@ -37,6 +37,26 @@ Desktop and mobile do not embed the database; they need a reachable server. Embe
 - Passwords: Argon2id (PHC string in `user.password_hash`). Login on an unknown user still performs a hash to flatten timing.
 - Sessions: 256-bit random opaque token returned by `login`. Only its SHA-256 is stored (`session.token_hash`), 30-day expiry. Changing the password revokes all sessions.
 - The client keeps the token in `localStorage` and passes it to each server function. Trade-off: readable by any script in the page (XSS), in exchange for one mechanism that works on web, desktop and mobile. An HttpOnly cookie for the web target is a candidate hardening.
+### Secret question and password recovery
+
+Every account has a **mandatory secret question and answer**, set at sign-up (older accounts are prompted to set one in Settings until they do). The question is stored as plain text (it must be shown on the recovery screen); the answer only as an Argon2id hash of its *normalised* form (trimmed, whitespace collapsed, lower-cased, so `"  St  MARY "` matches `st mary`).
+
+| Flow | What it requires |
+|---|---|
+| **Forgot password** (login page) | username -> shown the question -> the answer -> a short-lived token -> new password typed twice |
+| **Change password** (Settings) | current password **and** the secret answer **and** the new password typed twice; signs every session out |
+| **Change secret** (Settings) | current password, and the current answer if one is set |
+| **Operator reset** (`scripts/reset-password`) | shell access to the server (see below) |
+
+Safeguards, all enforced on the server and covered by tests:
+
+- **Rate limiting.** Five wrong answers lock every answer check for that account for 15 minutes (a correct answer is refused while locked); the counter is shared by forgot-password, change-password and change-secret. The lock is per account and fixed-length: an attacker can still try about 480 guesses a day against one account, so choose an answer with real entropy, not a guessable one. A stronger scheme (escalating lockouts, an IP throttle) is possible but not built.
+- **A correct answer is not enough by itself.** It returns a single-use token (256-bit random, only its SHA-256 stored, 10-minute expiry, consumed even when expired) and only that token can set the new password. A successful reset revokes all sessions and clears the lock.
+- **No account enumeration.** The recovery screen shows a decoy question, stable per username, for unknown usernames and for accounts without a secret, and a wrong answer takes the same path and comparable time. A wrong *current password* never counts against the answer limit, so it cannot be used to lock someone out.
+- The answer and token are never logged.
+
+**Operator reset.** `scripts/reset-password [USERNAME]` runs the small `kaaryasoochi-admin` binary (`crates/admin`). It needs no old password or secret, because whoever can run it already controls the database. The password is read from the terminal, twice, with echo off, and is refused when there is no terminal, so it never appears in arguments, the environment, shell history or a pipe. It signs the account out everywhere and clears any lockout. It never creates a database that does not exist. It is also the way back in for an account that has no secret question.
+
 - Passkeys: the `passkey` table exists; the WebAuthn registration/authentication ceremonies (planned: `webauthn-rs`) are not implemented.
 
 ## Authorization
@@ -54,7 +74,15 @@ Every service function takes `user_id` and filters by it; a job id belonging to 
 
 The backend then runs each claimed job in its own task and reports back through `run::finish` (status, exit code, output tail). On startup, `run::recover_interrupted` marks any run left `running` by a previous process as failed.
 
-Missed occurrences (server was down) are skipped rather than replayed: the next run is the first slot after `now`. **The scheduler only runs while the server process is up**, unlike cron, which runs as a system service.
+### Running as a service, and catching up after downtime
+
+The server runs as a systemd **user** service (`deploy/systemd/kaaryasoochi-server.service`, installed by `scripts/install-service.sh`). With lingering enabled (`loginctl enable-linger`) it starts at boot without a login, and `Restart=on-failure` brings it back after a crash. The scheduler is started when the server starts (`dioxus::serve` initializer), not by the first client request, so a headless service schedules from the moment it is up.
+
+**Missed runs are caught up, once.** If the machine was off (or the server down) when a job was due, that job runs **once** as soon as the server is back, not once per missed occurrence, and its schedule then resumes at the next future slot. The history records when the run was originally due ("Scheduled for …") and when it actually started. Catch-up runs (started more than 90 s after they were due) run **one after another in the order they were due** rather than all at once, so a job that depends on an earlier one (a report that needs the morning's data sync) does not race it. On-time runs stay concurrent.
+
+**Dependencies at boot.** `KAARYASOOCHI_WAIT_FOR_TCP` (comma-separated `host:port`, set with `install-service.sh --wait-for`) holds the scheduler until those endpoints accept connections, up to 3 minutes, then proceeds regardless. The UI is available meanwhile. This avoids a catch-up run failing because a database it needs is still starting (a user unit cannot be ordered after system units such as `postgresql.service`).
+
+Stopping or restarting the service ends running jobs (they live in its cgroup); they are recorded as failed ("interrupted") on the next start.
 
 ### Running commands
 

@@ -7,7 +7,10 @@ use argon2::password_hash::{
 use argon2::Argon2;
 use chrono::{Duration, Utc};
 use kaaryasoochi_core::dto::UserView;
-use kaaryasoochi_core::validation::{validate_full_name, validate_password, validate_username};
+use kaaryasoochi_core::validation::{
+    validate_full_name, validate_new_password, validate_password, validate_secret_answer,
+    validate_secret_question, validate_username,
+};
 use sea_orm::{prelude::*, ActiveValue::Set, PaginatorTrait, TransactionTrait};
 use sha2::{Digest, Sha256};
 
@@ -16,19 +19,19 @@ use crate::{DbError, DbResult};
 
 pub const SESSION_DAYS: i64 = 30;
 
-fn hash_password(pw: &str) -> DbResult<String> {
+pub(crate) fn hash_password(pw: &str) -> DbResult<String> {
     Argon2::default()
         .hash_password(pw.as_bytes(), &SaltString::generate(&mut OsRng))
         .map(|h| h.to_string())
         .map_err(|e| DbError::Internal(e.to_string()))
 }
 
-fn verify_password(pw: &str, phc: &str) -> bool {
+pub(crate) fn verify_password(pw: &str, phc: &str) -> bool {
     PasswordHash::new(phc)
         .is_ok_and(|h| Argon2::default().verify_password(pw.as_bytes(), &h).is_ok())
 }
 
-fn token_hash(token: &str) -> String {
+pub(crate) fn token_hash(token: &str) -> String {
     Sha256::digest(token.as_bytes())
         .iter()
         .map(|b| format!("{b:02x}"))
@@ -41,6 +44,7 @@ fn view(u: &user::Model) -> UserView {
         username: u.username.clone(),
         full_name: u.full_name.clone(),
         is_admin: u.is_admin,
+        secret_question: u.secret_question.clone(),
     }
 }
 
@@ -50,11 +54,17 @@ pub async fn register(
     username: &str,
     password: &str,
     full_name: &str,
+    secret_question: &str,
+    secret_answer: &str,
 ) -> DbResult<UserView> {
     let username = validate_username(username)?;
     validate_password(password)?;
     let full_name = validate_full_name(full_name)?;
+    // A secret question and answer are mandatory: they are the way back into the account.
+    let secret_question = validate_secret_question(secret_question)?;
+    let secret_answer = validate_secret_answer(secret_answer)?;
     let password_hash = hash_password(password)?;
+    let secret_answer_hash = hash_password(&secret_answer)?;
 
     let tx = db.begin().await?;
     if user::Entity::find()
@@ -72,6 +82,8 @@ pub async fn register(
         username: Set(username),
         full_name: Set(full_name),
         password_hash: Set(password_hash),
+        secret_question: Set(secret_question),
+        secret_answer_hash: Set(secret_answer_hash),
         created_at: Set(Utc::now()),
         ..Default::default()
     }
@@ -136,24 +148,48 @@ pub async fn logout(db: &DatabaseConnection, token: &str) -> DbResult<()> {
     Ok(())
 }
 
-/// Requires the current password; revokes every session for the user.
+/// Changing the password needs three things: the current password, the answer to the secret
+/// question, and the new password typed twice. Revokes every session for the user.
 pub async fn change_password(
     db: &DatabaseConnection,
     user_id: i32,
     current: &str,
+    answer: &str,
     new: &str,
+    confirm: &str,
 ) -> DbResult<()> {
-    validate_password(new)?;
+    change_password_at(db, user_id, current, answer, new, confirm, Utc::now()).await
+}
+
+pub(crate) async fn change_password_at(
+    db: &DatabaseConnection,
+    user_id: i32,
+    current: &str,
+    answer: &str,
+    new: &str,
+    confirm: &str,
+    now: chrono::DateTime<Utc>,
+) -> DbResult<()> {
+    validate_new_password(new, confirm)?;
     let u = user::Entity::find_by_id(user_id)
         .one(db)
         .await?
         .ok_or(DbError::NotFound)?;
+    if u.secret_question.is_empty() {
+        return Err(DbError::SecretNotSet);
+    }
     if !verify_password(current, &u.password_hash) {
         return Err(DbError::InvalidCredentials);
     }
+    // Only now is the answer checked, so a wrong current password cannot be used to burn attempts.
+    super::recovery::verify_answer_at(db, &u, answer, now).await?;
     let mut am: user::ActiveModel = u.into();
     am.password_hash = Set(hash_password(new)?);
     am.update(db).await?;
+    revoke_sessions(db, user_id).await
+}
+
+pub(crate) async fn revoke_sessions(db: &DatabaseConnection, user_id: i32) -> DbResult<()> {
     session::Entity::delete_many()
         .filter(session::Column::UserId.eq(user_id))
         .exec(db)

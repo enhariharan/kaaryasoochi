@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Hariharan Narayanan
+
+# Kaaryasoochi server: the job scheduler and the API/web backend.
+#
+# A *user* unit. With lingering enabled (`loginctl enable-linger $USER`) the user manager, and
+# with it this service, starts at boot without anyone logging in, so scheduled jobs run headless.
+# Jobs missed while the machine was off run once, in their original order, as soon as it is up.
+#
+# Installed by scripts/install-service.sh; logs: journalctl --user -u kaaryasoochi-server
+[Unit]
+Description=Kaaryasoochi server (job scheduler and API)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.local/share/kaaryasoochi/app/web
+Environment=IP=127.0.0.1
+Environment=PORT=8080
+Environment=KAARYASOOCHI_DATABASE_URL=sqlite://%h/.local/share/kaaryasoochi/kaaryasoochi.db?mode=rwc
+# Optional: hold the scheduler until these host:port endpoints accept connections (e.g. a
+# database the jobs need). The install script writes this from --wait-for as a drop-in.
+ExecStart=%h/.local/share/kaaryasoochi/app/web/server
+Restart=on-failure
+RestartSec=5
+# A stop or restart ends running jobs (they live in this unit's cgroup); they are recorded as
+# failed ("interrupted") on the next start.
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

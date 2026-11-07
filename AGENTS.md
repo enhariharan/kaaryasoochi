@@ -18,6 +18,7 @@ Kaaryasoochi: cron-job scheduler/manager. Rust workspace, Dioxus 0.7 fullstack, 
 - Lint: `cargo clippy --workspace --all-targets --features server -- -D warnings` and `cargo fmt --all --check`
 - Web build check: `cargo check -p kaaryasoochi-app --target wasm32-unknown-unknown --features web`
 - Run: `cd crates/app && dx serve --web`
+- Deploy: `(cd crates/app && dx build --desktop --release) && scripts/install-service.sh` (copies the build to `~/.local/share/kaaryasoochi/app` and restarts the systemd user service; re-run after every rebuild). Stop any manually started server first (`scripts/run-desktop.sh stop-all`).
 
 ## Conventions
 - Dioxus is pinned to `=0.7.9` to match the `dx` CLI. Bump both together.
@@ -28,6 +29,8 @@ Kaaryasoochi: cron-job scheduler/manager. Rust workspace, Dioxus 0.7 fullstack, 
 - Times are stored and transported as UTC. Calendar recurrence is evaluated in the job's stored IANA zone (`Repeat::next_after(.., tz)`); the UI converts using the user's effective zone (`state.rs`).
 - Layout must mirror for right-to-left: use logical CSS properties only (`margin-inline-start`, `inset-inline-end`, `text-align: start`); a test rejects `left`/`right`. Wrap dates in `bdi { dir: "ltr" }`, give user-typed text `dir: "auto"`, keep paths/commands/cron text LTR (`.mono`).
 - Check UI in the engine users run. Desktop = WebKitGTK, which differs from Chrome (e.g. it drew `<select>` as a light native widget, making values unreadable in dark themes; DOM values looked fine, only pixels showed it). Reading DOM state is not enough for visual bugs: render and look, or sample pixels. An offscreen `WebKit2.WebView` in a `Gtk.OffscreenWindow` (Python `gi`, `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 WEBKIT_DISABLE_COMPOSITING_MODE=1 GDK_BACKEND=x11`, ephemeral context with no proxy) runs the web build without opening a window on the desktop; test dark, light and RTL.
+- Secret answers and reset tokens are credentials: never log them, never store them un-hashed, never return them in an error. All three answer-checking flows go through `recovery::verify_answer_at` (lockout lives there); a new flow must too. Keep the unknown-user path indistinguishable from the real one (decoy question, same error, comparable work).
+- Operator tasks that must not go through the web API (password reset) live in `crates/admin` behind a terminal prompt.
 - The UI text guard (`i18n::every_key_used_by_the_ui_exists`) fails on any `t("key")` not in `en.txt`; a missing key renders as blank. When scripting edits, assert that the text you replace was found (rustfmt reflows code, so silent no-op replaces have bitten us twice).
 - Web-only failures are invisible to native tests (e.g. `Utc::now()` panics on wasm without chrono `wasmbind`). After UI changes, build `dx build --web`, serve it against a scratch DB, and drive it with headless Chrome (CDP) rather than trusting `cargo check`.
 - Job commands run arbitrary code as the server user: keep the admin-only check in `services::job`, and never log command text.

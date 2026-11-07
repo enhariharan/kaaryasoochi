@@ -21,6 +21,8 @@ enum Route {
     Login {},
     #[route("/register")]
     Register {},
+    #[route("/forgot")]
+    Forgot {},
     #[layout(Shell)]
     #[route("/")]
     Home {},
@@ -39,6 +41,16 @@ fn main() {
     dioxus::fullstack::set_server_url(
         option_env!("KAARYASOOCHI_SERVER_URL").unwrap_or("http://127.0.0.1:8080"),
     );
+    // The server must start scheduling at boot, not when the first client happens to call it:
+    // connect, migrate and start the scheduler (which also catches up on runs missed while the
+    // machine was off) before serving. A failure here exits, so a supervisor such as systemd
+    // restarts the process.
+    #[cfg(feature = "server")]
+    dioxus::serve(|| async {
+        backend::db().await.map_err(|e| anyhow::anyhow!("{e}"))?;
+        Ok(dioxus::server::router(App))
+    });
+    #[cfg(not(feature = "server"))]
     dioxus::launch(App);
 }
 
@@ -51,6 +63,8 @@ fn App() -> Element {
         system_date: use_signal(Default::default),
         system_time: use_signal(Default::default),
         ready: use_signal(|| false),
+        secret_missing: use_signal(|| false),
+        focus_secret: use_signal(|| false),
     };
     use_context_provider(|| state);
 
@@ -119,6 +133,17 @@ fn Shell() -> Element {
             });
         }
     });
+    // Older accounts have no secret question; remind them until they set one.
+    use_effect(move || {
+        if let Some(tok) = s.token.read().clone() {
+            let mut missing = s.secret_missing;
+            spawn(async move {
+                if let Ok(u) = api::me(tok).await {
+                    missing.set(u.secret_question.is_empty());
+                }
+            });
+        }
+    });
     if s.token.read().is_none() {
         return rsx! {};
     }
@@ -136,6 +161,12 @@ fn Shell() -> Element {
                     s.token.set(None);
                     s.settings.set(UserSettings::default());
                 }, {state::t("auth.logout")} }
+            }
+        }
+        if *s.secret_missing.read() {
+            div { class: "banner", role: "status",
+                {state::t("banner.set_secret")} " "
+                Link { to: Route::Settings {}, onclick: move |_| s.focus_secret.set(true), {state::t("banner.set_secret_link")} }
             }
         }
         main { Outlet::<Route> {} }

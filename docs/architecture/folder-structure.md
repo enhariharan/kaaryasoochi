@@ -23,6 +23,7 @@
 │   │   ├── migration/        versioned migrations
 │   │   ├── services/         auth, category, job, run (+scheduler tick), settings
 │   │   └── tests.rs          service tests on in-memory SQLite
+│   ├── admin/                operator CLI: list accounts, reset a password (scripts/reset-password)
 │   └── app/
 │       ├── Dioxus.toml
 │       ├── assets/main.css
@@ -34,5 +35,6 @@
 │           └── pages/        auth, home, job (form + history), settings
 ├── docs/architecture/
 ├── .gitea/workflows/ci.yml
-└── scripts/                  setup-remotes.sh
+├── deploy/systemd/           user units: kaaryasoochi-server.service, kaaryasoochi-app.service (opt-in)
+└── scripts/                  setup-remotes.sh, run-desktop.sh, install-service.sh, reset-password, verify-migrated-jobs.sh
 ```

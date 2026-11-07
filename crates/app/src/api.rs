@@ -20,11 +20,73 @@ pub async fn register(
     username: String,
     password: String,
     full_name: String,
+    secret_question: String,
+    secret_answer: String,
 ) -> Result<(), ServerFnError> {
-    services::auth::register(db().await?, &username, &password, &full_name)
+    services::auth::register(
+        db().await?,
+        &username,
+        &password,
+        &full_name,
+        &secret_question,
+        &secret_answer,
+    )
+    .await
+    .map(|_| ())
+    .map_err(err)
+}
+
+/// Step 1 of "forgot password": the secret question to show for `username`. Unknown usernames get
+/// a decoy question, so this does not reveal which accounts exist.
+#[server]
+pub async fn recovery_question(username: String) -> Result<String, ServerFnError> {
+    services::recovery::question_for(db().await?, &username)
         .await
-        .map(|_| ())
         .map_err(err)
+}
+
+/// Step 2: a correct answer returns a single-use token (valid for 10 minutes). Wrong answers are
+/// counted, and repeated ones lock recovery for a while.
+#[server]
+pub async fn recovery_verify(username: String, answer: String) -> Result<String, ServerFnError> {
+    services::recovery::start_recovery(db().await?, &username, &answer)
+        .await
+        .map_err(err)
+}
+
+/// Step 3: sets the new password with the token from step 2, and signs every session out.
+#[server]
+pub async fn recovery_reset(
+    token: String,
+    new: String,
+    confirm: String,
+) -> Result<(), ServerFnError> {
+    services::recovery::finish_recovery(db().await?, &token, &new, &confirm)
+        .await
+        .map_err(err)
+}
+
+/// Changes the secret question and answer. Needs the current password and, if a secret is
+/// already set, its current answer. Returns the new question.
+#[server]
+pub async fn set_secret_question(
+    token: String,
+    current_password: String,
+    current_answer: String,
+    question: String,
+    answer: String,
+) -> Result<String, ServerFnError> {
+    let u = auth(&token).await?;
+    services::recovery::set_secret(
+        db().await?,
+        u.id,
+        &current_password,
+        &current_answer,
+        &question,
+        &answer,
+    )
+    .await
+    .map_err(err)
 }
 
 #[server]
@@ -88,10 +150,12 @@ pub async fn update_full_name(token: String, full_name: String) -> Result<UserVi
 pub async fn change_password(
     token: String,
     current: String,
+    answer: String,
     new: String,
+    confirm: String,
 ) -> Result<(), ServerFnError> {
     let u = auth(&token).await?;
-    services::auth::change_password(db().await?, u.id, &current, &new)
+    services::auth::change_password(db().await?, u.id, &current, &answer, &new, &confirm)
         .await
         .map_err(err)
 }

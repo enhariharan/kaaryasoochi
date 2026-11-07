@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Hariharan Narayanan
+
+[package]
+name = "kaaryasoochi-admin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Operator tool: list accounts and reset a password from the command line"
+
+[[bin]]
+name = "kaaryasoochi-admin"
+path = "src/main.rs"
+
+[dependencies]
+kaaryasoochi-db.workspace = true
+tokio = { version = "1", features = ["rt", "macros"] }
+rpassword = "7"

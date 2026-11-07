@@ -15,6 +15,14 @@ pub enum DbError {
     InvalidCredentials,
     #[error("not authenticated")]
     Unauthenticated,
+    #[error("incorrect answer")]
+    WrongAnswer,
+    #[error("too many wrong answers; try again in {0} minute(s)")]
+    Locked(i64),
+    #[error("this recovery session has expired; please start again")]
+    InvalidToken,
+    #[error("set a secret question in Settings first")]
+    SecretNotSet,
     #[error("this job is already running")]
     AlreadyRunning,
     #[error("not found")]

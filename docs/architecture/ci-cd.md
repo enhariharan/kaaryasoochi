@@ -23,6 +23,10 @@ Gitea Actions is largely GitHub-Actions compatible, so the same file could be co
 
 Rust stable with the wasm target; `webkit2gtk`/`libxdo` are needed only for desktop builds and are not part of CI. The `dx` CLI version must match the pinned `dioxus` crate (`0.7.9`).
 
+## Deployment (local)
+
+`scripts/install-service.sh` deploys a release build as a systemd user service on the workstation (see `architecture.md`, "Running as a service"). It is a manual step after `dx build --desktop --release`; CI does not deploy.
+
 ## Not covered yet
 
-Release tagging, desktop/mobile packaging, and deployment (container image or systemd unit) are not scripted.
+Release tagging, desktop/mobile packaging, and remote or container deployment are not scripted.

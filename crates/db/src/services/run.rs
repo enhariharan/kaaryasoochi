@@ -17,6 +17,9 @@ use crate::{DbError, DbResult};
 pub struct Claim {
     pub run_id: i32,
     pub job: job::Model,
+    /// The time this run was due. Well before `now` means it is a catch-up run (the server was
+    /// down or busy when it should have started).
+    pub scheduled_for: DateTime<Utc>,
 }
 
 fn view(m: job_run::Model) -> RunView {
@@ -114,6 +117,7 @@ pub async fn claim_due(db: &impl ConnectionTrait, now: DateTime<Utc>) -> DbResul
             claims.push(Claim {
                 run_id: run.id,
                 job: j,
+                scheduled_for,
             });
         }
     }
@@ -131,9 +135,10 @@ pub async fn claim_due(db: &impl ConnectionTrait, now: DateTime<Utc>) -> DbResul
         if running > 0 {
             continue; // try again on a later tick
         }
+        let retry_due = j.retry_at.unwrap_or(now);
         let run = job_run::ActiveModel {
             job_id: Set(j.id),
-            scheduled_for: Set(j.retry_at.unwrap_or(now)),
+            scheduled_for: Set(retry_due),
             started_at: Set(now),
             status: Set(RunStatus::Running.as_str().into()),
             attempt: Set(j.retry_attempt + 1),
@@ -148,9 +153,22 @@ pub async fn claim_due(db: &impl ConnectionTrait, now: DateTime<Utc>) -> DbResul
         claims.push(Claim {
             run_id: run.id,
             job: j,
+            scheduled_for: retry_due,
         });
     }
     Ok(claims)
+}
+
+/// Records the moment execution really begins. A run is created (and marked running) when it is
+/// claimed, but a catch-up run may then wait for the runs before it, so `started_at` is set again
+/// here to reflect when the job actually started.
+pub async fn mark_started(db: &impl ConnectionTrait, run_id: i32) -> DbResult<()> {
+    if let Some(run) = job_run::Entity::find_by_id(run_id).one(db).await? {
+        let mut am: job_run::ActiveModel = run.into();
+        am.started_at = Set(Utc::now());
+        am.update(db).await?;
+    }
+    Ok(())
 }
 
 /// What [`finish`] decided about the run.
@@ -280,5 +298,6 @@ pub async fn start_manual(db: &impl ConnectionTrait, user_id: i32, job_id: i32) 
     Ok(Claim {
         run_id: run.id,
         job,
+        scheduled_for: now,
     })
 }
