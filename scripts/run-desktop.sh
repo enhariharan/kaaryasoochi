@@ -24,7 +24,7 @@ have_service() { systemctl --user cat "$SERVICE" >/dev/null 2>&1; }
 listening() { ss -ltn | grep -q ":$PORT "; }
 
 # Prefer the installed copy of the app; fall back to the build tree.
-if [[ -x "$INSTALLED/linux/kaaryasoochi-app" ]]; then
+if [ -x "$INSTALLED/linux/kaaryasoochi-app" ]; then
   APP_BIN="$INSTALLED/linux/kaaryasoochi-app"; APP_DIR="$INSTALLED/linux"
 else
   APP_BIN="$BUILD/linux/app/kaaryasoochi-app"; APP_DIR="$BUILD/linux/app"
@@ -34,7 +34,7 @@ SERVER_BIN="$BUILD/web/server"
 case "${1:-}" in
   stop|stop-all)
     pkill -f "^$APP_BIN" || true
-    if [[ "$1" == stop-all ]]; then
+    if [ "$1" = stop-all ]; then
       have_service && systemctl --user stop "$SERVICE" || true
       pkill -f "^$SERVER_BIN" || true
     fi
@@ -51,13 +51,13 @@ elif have_service; then
   for _ in $(seq 40); do listening && break; sleep 0.5; done
   echo "server started via systemd ($SERVICE)"
 else
-  [[ -x "$SERVER_BIN" ]] || { echo "Not built. Run: cd crates/app && dx build --desktop --release" >&2; exit 1; }
+  [ -x "$SERVER_BIN" ] || { echo "Not built. Run: cd crates/app && dx build --desktop --release" >&2; exit 1; }
   (cd "$BUILD/web" && KAARYASOOCHI_DATABASE_URL="sqlite://$DATA/kaaryasoochi.db?mode=rwc" IP=$HOST PORT=$PORT \
     setsid nohup "$SERVER_BIN" >"$DATA/server.log" 2>&1 &)
   for _ in $(seq 40); do listening && break; sleep 0.5; done
   echo "server started on $HOST:$PORT (log: $DATA/server.log)"
 fi
 
-[[ -x "$APP_BIN" ]] || { echo "Not built. Run: cd crates/app && dx build --desktop --release" >&2; exit 1; }
+[ -x "$APP_BIN" ] || { echo "Not built. Run: cd crates/app && dx build --desktop --release" >&2; exit 1; }
 (cd "$APP_DIR" && setsid nohup "$APP_BIN" >"$DATA/app.log" 2>&1 &)
 echo "desktop app started (log: $DATA/app.log)"
