@@ -139,14 +139,6 @@ pub fn icon_document() -> Element {
     })
 }
 
-pub fn icon_key() -> Element {
-    svg(rsx! {
-        circle { cx: "7.5", cy: "15.5", r: "5.5" }
-        polyline { points: "21 2 13 10" }
-        line { x1: "21", y1: "7", x2: "16", y2: "2" }
-    })
-}
-
 pub fn icon_user_plus() -> Element {
     svg(rsx! {
         path { d: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" }

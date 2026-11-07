@@ -16,6 +16,8 @@ a { color: var(--accent); }
 .auth-logo { text-align:center; margin-bottom:.75rem; } .auth-logo img { width:72px; height:72px; display:block; margin:0 auto; }
 button, .button { font:inherit; padding:.5rem 1rem; border:1px solid var(--border); border-radius:8px; background:var(--card); color:var(--fg); cursor:pointer; text-decoration:none; display:inline-block; }
 button.primary { background:var(--accent); color:#fff; border-color:transparent; }
+@media (prefers-color-scheme: dark) { .app[data-theme="system"] button.primary { color:#0d0f14; } }
+.app[data-theme="dark"] button.primary { color:#0d0f14; }
 button.danger { color:var(--danger); border-color:var(--danger); }
 button.link { border:none; background:none; color:var(--accent); padding:0; }
 button:disabled { opacity:.5; cursor:not-allowed; }
@@ -139,6 +141,7 @@ select option { background:var(--card); color:var(--fg); }
 /* keyboard shortcut help */
 kbd { display:inline-block; padding:.1rem .4rem; border:1px solid var(--border); border-radius:5px; background:var(--bg); font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; font-size:.8rem; box-shadow:inset 0 -2px 0 var(--border); white-space:nowrap; }
 kbd + kbd { margin-inline-start:.3rem; }
+button.primary kbd { background:rgba(255,255,255,.2); border-color:rgba(255,255,255,.35); box-shadow:none; color:inherit; }
 .hotkey-help { max-width:480px; }
 .hotkey-help table { margin-block:.5rem 1rem; border:none; }
 .hotkey-help th, .hotkey-help td { border:none; padding:.3rem .4rem; }
@@ -189,4 +192,9 @@ a.ibtn { text-decoration:none; color:inherit; }
 .fab .ibtn-label { display:none; }
 .fab .ibtn-key   { display:none; }
 .fab .ibtn-icon  { display:inline-flex; }
-.fab.ibtn        { font-size:2rem; }
+.fab.ibtn        { position:fixed; font-size:2rem; color:#fff; }
+.fab .ibtn-tt    { font-size:1rem; }
+/* always show hotkey badge regardless of data-display setting */
+.show-key .ibtn-key { display:inline-flex; }
+/* ibtn used as a plain link (no box, no background) */
+a.ibtn.link-btn { border:none; background:none; padding:0; color:var(--accent); }

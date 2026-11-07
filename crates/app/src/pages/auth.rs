@@ -5,7 +5,7 @@ use dioxus::prelude::*;
 
 use kaaryasoochi_core::limits::{SECRET_ANSWER_MAX, SECRET_QUESTION_MAX, SECRET_QUESTION_MIN};
 
-use super::{clean_err, ErrorBanner, IBtn, PasswordField};
+use super::{clean_err, ErrorBanner, IBtn, ILink, PasswordField};
 use crate::icons::*;
 use crate::state::{app_state, persist_token, t};
 use crate::{api, Route};
@@ -58,11 +58,16 @@ pub fn Login() -> Element {
                 PasswordField { label: "auth.password", value: password, autocomplete: "current-password" }
                 ErrorBanner { msg: error }
                 IBtn { icon: icon_arrow_right(), label: t("auth.login"),
-                    r#type: "submit", class: "primary", disabled: busy() }
+                    r#type: "submit", class: "primary show-key", disabled: busy(),
+                    accesskey: "l", aria_keyshortcuts: "Alt+l", hotkey: "Alt+L" }
             }
             // Passkey sign-in is planned; the button stays hidden until the WebAuthn flow exists.
-            p { class: "muted", Link { to: Route::Forgot {}, {icon_key()} " " {t("auth.forgot")} } }
-            p { class: "muted", Link { to: Route::Register {}, {icon_user_plus()} " " {t("auth.register")} } }
+            p { class: "muted",
+                ILink { to: Route::Forgot {}, icon: icon_lock(), label: t("auth.forgot"),
+                    class: "show-key link-btn", hotkey: "Alt+F", accesskey: "f" } }
+            p { class: "muted",
+                ILink { to: Route::Register {}, icon: icon_user_plus(), label: t("auth.register"),
+                    class: "show-key link-btn", hotkey: "Alt+C", accesskey: "c" } }
         }
     }
 }

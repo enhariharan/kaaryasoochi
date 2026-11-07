@@ -43,13 +43,23 @@ pub fn Home() -> Element {
         Layout::List => "jobs list",
     };
 
+    // Alt+0 → Default category; Alt+1…9 → non-default categories left to right.
+    let mut nd: u8 = 0;
+    let cat_keys: Vec<String> = cats.iter().map(|c| {
+        if c.name == DEFAULT_CATEGORY { "0".to_string() }
+        else { nd += 1; if nd <= 9 { nd.to_string() } else { String::new() } }
+    }).collect();
+
     rsx! {
         div { class: "home {orientation}",
             div { class: "tabs", role: "tablist",
-                for c in cats.iter() {
+                for (c, ak) in cats.iter().zip(cat_keys.iter()) {
                     button {
                         key: "{c.id}", role: "tab", class: if c.name == selected() { "tab active" } else { "tab" },
                         "aria-selected": c.name == selected(),
+                        accesskey: if !ak.is_empty() { Some(ak.as_str()) } else { None },
+                        "aria-keyshortcuts": if !ak.is_empty() { Some(format!("Alt+{ak}")) } else { None },
+                        title: if !ak.is_empty() { Some(format!("{} (Alt+{})", c.name, ak)) } else { None },
                         onclick: { let n = c.name.clone(); move |_| selected.set(n.clone()) },
                         span { class: "ibtn-icon", "aria-hidden": "true", {icon_folder()} }
                         span { dir: "auto", "{c.name}" }
