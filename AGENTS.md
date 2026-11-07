@@ -18,6 +18,7 @@ Kaaryasoochi: cron-job scheduler/manager. Rust workspace, Dioxus 0.7 fullstack, 
 - Lint: `cargo clippy --workspace --all-targets --features server -- -D warnings` and `cargo fmt --all --check`
 - Web build check: `cargo check -p kaaryasoochi-app --target wasm32-unknown-unknown --features web`
 - Run: `cd crates/app && dx serve --web`
+- Icons: after editing `crates/app/assets/icon.svg`, run `python3 scripts/gen-icons.py` to re-render the PNG sizes. It uses librsvg; ImageMagick without its rsvg delegate silently renders a black blob instead.
 - Deploy: `(cd crates/app && dx build --desktop --release) && scripts/install-service.sh` (copies the build to `~/.local/share/kaaryasoochi/app` and restarts the systemd user service; re-run after every rebuild). Stop any manually started server first (`scripts/run-desktop.sh stop-all`).
 
 ## Conventions
