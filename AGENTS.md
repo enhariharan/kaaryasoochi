@@ -44,4 +44,4 @@ MIT. Every source, config, script and doc file starts with the two-line SPDX hea
 Remotes are `gitea` and `github` (no `origin`). Do not push without being asked.
 
 ## Known gaps
-Passkeys (table exists, no flow). The scheduler runs only while the server process is up (no system service yet).
+Passkeys (table exists, no flow).
