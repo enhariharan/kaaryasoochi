@@ -248,6 +248,14 @@ pub async fn admin_reset_password(
 }
 
 /// `(username, is_admin, has_secret_question)` for every account, for the operator tool.
+/// Returns the numeric id of a user by username, or `DbError::NotFound`.
+pub async fn user_id_by_username(db: &impl ConnectionTrait, username: &str) -> DbResult<i32> {
+    find(db, &norm_name(username))
+        .await?
+        .map(|u| u.id)
+        .ok_or(DbError::NotFound)
+}
+
 pub async fn list_users(db: &impl ConnectionTrait) -> DbResult<Vec<(String, bool, bool)>> {
     use sea_orm::QueryOrder;
     Ok(user::Entity::find()

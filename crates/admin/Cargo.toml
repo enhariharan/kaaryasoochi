@@ -13,6 +13,8 @@ name = "kaaryasoochi-admin"
 path = "src/main.rs"
 
 [dependencies]
+kaaryasoochi-core.workspace = true
 kaaryasoochi-db.workspace = true
 tokio = { version = "1", features = ["rt", "macros"] }
 rpassword = "7"
+chrono.workspace = true

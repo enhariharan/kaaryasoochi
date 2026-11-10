@@ -5,6 +5,9 @@
 //!
 //!     kaaryasoochi-admin list
 //!     kaaryasoochi-admin reset-password <username>
+//!     kaaryasoochi-admin create-job <username> --title TITLE --script PATH
+//!                                   [--args ARGS] [--working-dir DIR]
+//!                                   [--first-run RFC3339_UTC] [--timeout SECS]
 //!
 //! The database is `--db <url>`, else `$KAARYASOOCHI_DATABASE_URL`, else the default location
 //! (`~/.local/share/kaaryasoochi/kaaryasoochi.db`, never created if missing). The new password is
@@ -13,9 +16,11 @@
 
 use std::process::ExitCode;
 
+use chrono::{DateTime, Utc};
+use kaaryasoochi_core::{JobInput, RunMode};
 use kaaryasoochi_db::services::recovery;
 
-const USAGE: &str = "usage:\n  kaaryasoochi-admin [--db URL] list\n  kaaryasoochi-admin [--db URL] reset-password <username>";
+const USAGE: &str = "usage:\n  kaaryasoochi-admin [--db URL] list\n  kaaryasoochi-admin [--db URL] reset-password <username>\n  kaaryasoochi-admin [--db URL] create-job <username> --title TITLE --script PATH [--args ARGS] [--working-dir DIR] [--first-run RFC3339_UTC] [--timeout SECS]";
 
 /// The default database, opened read-write but never created: a typo'd path must not silently
 /// produce an empty database that looks like "no such user".
@@ -107,8 +112,88 @@ async fn run(args: Args) -> Result<(), String> {
             );
             Ok(())
         }
+        ["create-job", username, rest @ ..] => {
+            let (title, script, args, working_dir, first_run, timeout_secs) =
+                parse_create_job_flags(rest)?;
+            let user_id = recovery::user_id_by_username(&db, username)
+                .await
+                .map_err(|_| format!("no account named {username:?}"))?;
+            let input = JobInput {
+                title,
+                category: String::new(),
+                summary: String::new(),
+                description: String::new(),
+                first_run,
+                repeat: None,
+                run_mode: RunMode::Script,
+                command: String::new(),
+                script_path: script,
+                script_args: args,
+                working_dir,
+                timeout_secs,
+                notify_on_failure: true,
+                retry_on_failure: false,
+                retry_count: kaaryasoochi_core::limits::RETRY_COUNT_DEFAULT,
+                retry_delay_secs: kaaryasoochi_core::limits::RETRY_DELAY_DEFAULT_SECS,
+            };
+            let job = kaaryasoochi_db::services::job::create(&db, user_id, input)
+                .await
+                .map_err(|e| e.to_string())?;
+            println!("created job #{} {:?}", job.id, job.title);
+            Ok(())
+        }
         _ => Err(String::new()),
     }
+}
+
+/// Parses the flags that follow `create-job <username>`.
+/// Returns `(title, script_path, script_args, working_dir, first_run, timeout_secs)`.
+fn parse_create_job_flags(
+    tokens: &[&str],
+) -> Result<(String, String, String, String, DateTime<Utc>, u32), String> {
+    let (mut title, mut script, mut args, mut dir, mut first_run_str, mut timeout) = (
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        300u32,
+    );
+    let mut it = tokens.iter();
+    while let Some(flag) = it.next() {
+        let mut val = || {
+            it.next()
+                .copied()
+                .ok_or_else(|| format!("{flag} needs a value"))
+        };
+        match *flag {
+            "--title" => title = val()?.to_owned(),
+            "--script" => script = val()?.to_owned(),
+            "--args" => args = val()?.to_owned(),
+            "--working-dir" => dir = val()?.to_owned(),
+            "--first-run" => first_run_str = val()?.to_owned(),
+            "--timeout" => {
+                timeout = val()?
+                    .parse()
+                    .map_err(|_| "--timeout must be a number of seconds")?
+            }
+            other => return Err(format!("unknown flag {other:?}")),
+        }
+    }
+    if title.is_empty() {
+        return Err("--title is required".into());
+    }
+    if script.is_empty() {
+        return Err("--script is required".into());
+    }
+    let first_run = if first_run_str.is_empty() {
+        Utc::now()
+    } else {
+        first_run_str
+            .parse::<DateTime<Utc>>()
+            .map_err(|_| format!("--first-run must be an RFC3339 UTC timestamp (e.g. 2026-11-10T13:00:00Z), got {first_run_str:?}"))?
+    };
+    Ok((title, script, args, dir, first_run, timeout))
 }
 
 #[tokio::main(flavor = "current_thread")]
