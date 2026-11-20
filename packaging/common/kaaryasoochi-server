@@ -1,0 +1,36 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Hariharan Narayanan
+
+# Starts the Kaaryasoochi server (scheduler, job executor and API) for the current user.
+# Normally run by the systemd *user* unit kaaryasoochi-server.service, never as root: jobs run
+# as whoever runs the server, so a root server would run every job as root.
+#
+# Defaults, each overridable from the environment (e.g. `systemctl --user edit`):
+#   IP=127.0.0.1  PORT=8080
+#   KAARYASOOCHI_DATA_DIR=${XDG_DATA_HOME:-~/.local/share}/kaaryasoochi
+#   KAARYASOOCHI_DATABASE_URL=sqlite://$KAARYASOOCHI_DATA_DIR/kaaryasoochi.db?mode=rwc
+#   KAARYASOOCHI_ALLOW_ROOT=1 to run as root anyway (not recommended).
+set -eu
+
+self=$(readlink -f "$0")
+web="$(dirname "$(dirname "$self")")/lib/kaaryasoochi/web"
+
+if [ "$(id -u)" -eq 0 ] && [ "${KAARYASOOCHI_ALLOW_ROOT:-}" != 1 ]; then
+  echo "kaaryasoochi-server: refusing to run as root, because every job would run as root." >&2
+  echo "Run it as your own user: systemctl --user enable --now kaaryasoochi-server" >&2
+  echo "(Set KAARYASOOCHI_ALLOW_ROOT=1 to override.)" >&2
+  exit 1
+fi
+
+: "${HOME:?HOME is not set}"
+data=${KAARYASOOCHI_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/kaaryasoochi}
+mkdir -p "$data"
+: "${KAARYASOOCHI_DATABASE_URL:=sqlite://$data/kaaryasoochi.db?mode=rwc}"
+: "${IP:=127.0.0.1}"
+: "${PORT:=8080}"
+export KAARYASOOCHI_DATABASE_URL IP PORT
+
+# The server serves its static files from ./public.
+cd "$web"
+exec ./server "$@"

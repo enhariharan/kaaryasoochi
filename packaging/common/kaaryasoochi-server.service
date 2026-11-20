@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Hariharan Narayanan
+
+# Kaaryasoochi server: the job scheduler and API, as a systemd *user* service. Jobs run as the
+# user who owns it; it never needs root.
+#
+# The `kaaryasoochi` launcher enables it on first launch. By hand:
+#   systemctl --user enable --now kaaryasoochi-server
+# Start it at boot, without logging in:   sudo loginctl enable-linger $USER
+# Hold catch-up runs until a dependency is up:   systemctl --user edit kaaryasoochi-server
+#   [Service]
+#   Environment=KAARYASOOCHI_WAIT_FOR_TCP=127.0.0.1:5432
+# Logs: journalctl --user -u kaaryasoochi-server
+[Unit]
+Description=Kaaryasoochi server (job scheduler and API)
+Documentation=https://github.com/enhariharan/kaaryasoochi
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/kaaryasoochi-server
+Restart=on-failure
+RestartSec=5
+# A stop or restart ends running jobs (they live in this unit's cgroup); they are recorded as
+# failed ("interrupted") on the next start.
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

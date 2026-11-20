@@ -84,6 +84,13 @@ The server runs as a systemd **user** service (`deploy/systemd/kaaryasoochi-serv
 
 Stopping or restarting the service ends running jobs (they live in its cgroup); they are recorded as failed ("interrupted") on the next start.
 
+**Per user, never root.** Jobs run as the server's OS user, so the server only runs as a per-user service. Installed packages share `packaging/common/`:
+- `kaaryasoochi-server`: a wrapper that keeps data in `~/.local/share/kaaryasoochi` and refuses to run as uid 0 unless `KAARYASOOCHI_ALLOW_ROOT=1`.
+- `kaaryasoochi-server.service`: the user unit, installed to `/usr/lib/systemd/user`.
+- `kaaryasoochi`: the launcher. On first launch it enables the unit. Each launch it starts the unit if needed, restarts it if an upgrade replaced the running binary, then opens the UI.
+
+A snap cannot ship a user unit, so for the snap the launcher writes one to `~/.config/systemd/user` with `ExecStart=/snap/bin/kaaryasoochi.server`. Snap daemons were not used because they are system services running as root, and user-scoped snap daemons are still experimental in snapd.
+
 ### Running commands
 
 A job runs either a typed shell **command** or a **script file** (absolute path, shell-syntax arguments, optional working directory); both become one `/bin/sh -c` line (`core::exec::shell_line`, script paths are single-quoted). Scripts are chosen with an in-app file browser over the *server's* filesystem (`fsbrowse.rs`: names and metadata only, admin-only, canonicalised paths, 2000-entry cap). "Run now" starts the saved job immediately without touching its schedule (refused while it is already running). A failed run raises a best-effort desktop notification (`notify-send`) when the job's *notify on failure* option is on. The command runs as `/bin/sh -c <command>` in its own process group, with a cron-like environment (cleared, then `HOME`, `LOGNAME`, `USER`, `SHELL=/bin/sh`, `PATH=/usr/bin:/bin`), working directory `$HOME`, stdin closed. Success means exit status 0. It is killed (whole process group) after `timeout_secs` (default 60, max 86400; jobs created before the default changed keep the value they were saved with). Only the last 8000 characters of stdout/stderr are stored. A job with an empty command just records a no-op success.
