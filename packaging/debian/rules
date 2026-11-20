@@ -1,0 +1,42 @@
+#!/usr/bin/make -f
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Hariharan Narayanan
+
+# Builds offline from the vendor/ component tarball (orig-vendor.tar.xz), as Launchpad requires.
+
+# Ubuntu's versioned toolchain (24.04 and later); the default rustc is too old on 24.04.
+export PATH := /usr/lib/rust-1.91/bin:$(PATH)
+export CARGO_HOME := $(CURDIR)/debian/cargo-home
+export DX_TELEMETRY_ENABLED := false
+# Launchpad's HOME does not exist; dx keeps its settings and logs under it.
+export HOME := $(CURDIR)/debian/home
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+
+override_dh_auto_build:
+	mkdir -p $(HOME)
+	packaging/build.sh
+
+# Tests run upstream in CI; here they would roughly double the build time.
+override_dh_auto_test:
+
+override_dh_auto_install:
+	packaging/install.sh $(CURDIR)/debian/kaaryasoochi
+
+# Each user enables the service (the launcher does it on first launch). Enabling it globally
+# would start a server for every user, all competing for 127.0.0.1:8080.
+override_dh_installsystemduser:
+	dh_installsystemduser --no-enable
+
+# The release profile builds without debug info.
+override_dh_dwz:
+
+override_dh_auto_clean:
+	rm -rf target debian/cargo-home debian/home
+
+# dh_clean deletes *.orig files; the vendored crates' Cargo.toml.orig are checksummed by cargo.
+override_dh_clean:
+	dh_clean -XCargo.toml.orig

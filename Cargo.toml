@@ -4,6 +4,8 @@
 [workspace]
 resolver = "2"
 members = ["crates/core", "crates/db", "crates/app", "crates/admin"]
+# vendor/ holds the offline crate sources for packaging (packaging/vendor.sh).
+exclude = ["vendor"]
 
 [workspace.package]
 version = "0.1.0"

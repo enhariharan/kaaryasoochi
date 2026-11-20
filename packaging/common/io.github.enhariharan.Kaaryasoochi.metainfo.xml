@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: MIT
+     Copyright (c) 2026 Hariharan Narayanan -->
+<component type="desktop-application">
+  <id>io.github.enhariharan.Kaaryasoochi</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Kaaryasoochi</name>
+  <summary>Schedule and manage cron-style jobs</summary>
+  <developer id="io.github.enhariharan">
+    <name>Hariharan Narayanan</name>
+  </developer>
+  <description>
+    <p>
+      Kaaryasoochi (job list) schedules commands and scripts the way cron does, with a desktop
+      window to create jobs, pick schedules and read each run's output.
+    </p>
+    <ul>
+      <li>One-shot, interval and full crontab schedules, with a live preview of the next runs</li>
+      <li>Run history with exit codes and output, and a notification when a job fails</li>
+      <li>Retries, timeouts and per-job time zones</li>
+      <li>Jobs missed while the computer was off run once when it is back</li>
+      <li>English, Tamil, Malayalam, Telugu, Hindi, Sanskrit and Urdu</li>
+    </ul>
+    <p>
+      Jobs are run by a per-user background service (a systemd user service), as you and never as
+      root, so they keep running after the window is closed.
+    </p>
+  </description>
+  <launchable type="desktop-id">kaaryasoochi.desktop</launchable>
+  <url type="homepage">https://github.com/enhariharan/kaaryasoochi</url>
+  <url type="bugtracker">https://github.com/enhariharan/kaaryasoochi/issues</url>
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <keywords>
+    <keyword>cron</keyword>
+    <keyword>scheduler</keyword>
+    <keyword>job</keyword>
+    <keyword>automation</keyword>
+  </keywords>
+  <provides>
+    <binary>kaaryasoochi</binary>
+    <binary>kaaryasoochi-server</binary>
+    <binary>kaaryasoochi-admin</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-11-20"/>
+  </releases>
+</component>

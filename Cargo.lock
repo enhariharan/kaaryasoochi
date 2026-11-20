@@ -3447,6 +3447,8 @@ dependencies = [
 name = "kaaryasoochi-admin"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "kaaryasoochi-core",
  "kaaryasoochi-db",
  "rpassword",
  "tokio",

@@ -39,7 +39,7 @@ Kaaryasoochi: cron-job scheduler/manager. Rust workspace, Dioxus 0.7 fullstack, 
 - Server errors: user-facing `DbError`s pass through; DB/internal errors are masked in `backend::err`.
 
 ## Licensing
-MIT. Every source, config, script and doc file starts with the two-line SPDX header (see any `.rs` file). Add it to new files. `LICENSE`, `Cargo.lock` and `.gitignore` are exempt.
+MIT. Every source, config, script and doc file starts with the two-line SPDX header (see any `.rs` file). Add it to new files. `LICENSE`, `Cargo.lock` and `.gitignore` are exempt, as are files whose format has no comments or that are generated: `packaging/debian/{changelog,copyright,source/format}` and `packaging/aur/.SRCINFO`.
 
 ## Git
 Remotes are `gitea` and `github` (no `origin`). Do not push without being asked.

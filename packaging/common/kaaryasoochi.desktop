@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Hariharan Narayanan
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Kaaryasoochi
+GenericName=Job Scheduler
+Comment=Schedule and manage cron-style jobs
+Exec=kaaryasoochi
+Icon=kaaryasoochi
+Terminal=false
+StartupWMClass=kaaryasoochi
+Categories=Utility;
+Keywords=cron;job;scheduler;task;automation;

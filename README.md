@@ -181,6 +181,13 @@ systemctl --user status kaaryasoochi-server            # state; also: restart / 
 - The service restarts after a crash. Stopping or restarting it ends running jobs; they are recorded as failed ("interrupted").
 - Only Linux/systemd is provided. There is no launchd (macOS) or Windows service equivalent.
 
+### Linux packages
+
+Packaging for a Launchpad PPA and `.deb` (Ubuntu 24.04 and 26.04), Fedora COPR and `.rpm`, the AUR,
+and the Snap Store lives in `packaging/` and `snap/`. See `packaging/README.md` for the layout, the
+offline build and the release steps. Installed packages run the same per-user service: the
+`kaaryasoochi` launcher enables and starts it the first time you open the app.
+
 ## macOS and Windows desktop (not verified)
 
 ```bash

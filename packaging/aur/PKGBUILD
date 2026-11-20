@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Hariharan Narayanan
+# Maintainer: Hariharan Narayanan <enhariharan at gmail dot com>
+
+# Builds offline from the vendor tarball (packaging/vendor.sh) attached to the GitHub release.
+# After a release: updpkgsums && makepkg --printsrcinfo > .SRCINFO, then push both to the AUR.
+
+pkgname=kaaryasoochi
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Schedule and manage cron-style jobs (desktop app and per-user scheduler service)'
+arch=('x86_64' 'aarch64')
+url='https://github.com/enhariharan/kaaryasoochi'
+license=('MIT')
+depends=('cairo' 'gcc-libs' 'gdk-pixbuf2' 'glib2' 'glibc' 'gtk3' 'hicolor-icon-theme'
+         'libsoup3' 'openssl' 'webkit2gtk-4.1' 'xdotool')
+makedepends=('cargo' 'lld' 'pkgconf')
+optdepends=('libnotify: notification when a job fails'
+            'iproute2: quicker start-up check in the launcher')
+options=('!lto' '!debug')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz"
+        "$url/releases/download/v$pkgver/$pkgname-$pkgver-vendor.tar.xz")
+sha256sums=('SKIP'
+            'SKIP')
+
+prepare() {
+  ln -sfn "$srcdir/vendor" "$srcdir/$pkgname-$pkgver/vendor"
+}
+
+build() {
+  cd "$pkgname-$pkgver"
+  packaging/build.sh
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  packaging/install.sh "$pkgdir" /usr
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

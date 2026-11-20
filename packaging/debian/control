@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Hariharan Narayanan
+Source: kaaryasoochi
+Section: utils
+Priority: optional
+Maintainer: Hariharan Narayanan <enhariharan@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               cargo-1.91,
+               rustc-1.91,
+               lld,
+               pkgconf,
+               libgtk-3-dev,
+               libjavascriptcoregtk-4.1-dev,
+               libsoup-3.0-dev,
+               libssl-dev,
+               libwebkit2gtk-4.1-dev,
+               libxdo-dev,
+               zlib1g-dev
+Standards-Version: 4.7.0
+Homepage: https://github.com/enhariharan/kaaryasoochi
+Vcs-Browser: https://github.com/enhariharan/kaaryasoochi
+Vcs-Git: https://github.com/enhariharan/kaaryasoochi.git
+Rules-Requires-Root: no
+
+Package: kaaryasoochi
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Recommends: iproute2, libnotify-bin, systemd
+Description: schedule and manage cron-style jobs
+ Kaaryasoochi schedules commands and scripts the way cron does, with a desktop
+ window (WebKitGTK) to create jobs, pick schedules and read each run's output:
+ one-shot, interval and crontab schedules, run history, retries, timeouts,
+ per-job time zones and catch-up of runs missed while the machine was off.
+ .
+ Jobs are run by a per-user systemd user service (kaaryasoochi-server), as
+ that user and never as root. The kaaryasoochi launcher enables it on first
+ launch; it is not enabled for every user at install time.

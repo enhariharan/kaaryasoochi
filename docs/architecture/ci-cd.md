@@ -29,4 +29,4 @@ Rust stable with the wasm target; `webkit2gtk`/`libxdo` are needed only for desk
 
 ## Not covered yet
 
-Release tagging, desktop/mobile packaging, and remote or container deployment are not scripted.
+Linux packages (Launchpad PPA, COPR, AUR, Snap Store) are built and published by hand, following `packaging/README.md`; CI does not build or publish them yet. Mobile packaging and remote or container deployment are not scripted.
