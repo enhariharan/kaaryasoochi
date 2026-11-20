@@ -8,7 +8,7 @@
 | `.deb` (Ubuntu 24.04 `noble`, 26.04 `resolute`) | `debian/`, `debian.sh` | Launchpad PPA; `.deb` on the GitHub release |
 | `.rpm` (Fedora) | `rpm/kaaryasoochi.spec` | Fedora COPR; `.rpm` on the GitHub release |
 | AUR (Arch) | `aur/PKGBUILD`, `aur/.SRCINFO` | aur.archlinux.org |
-| Snap | `../snap/snapcraft.yaml` | Snap Store (see `docs/deploy/snap_store_checklist.md`) |
+| Snap (classic; browser UI instead of the window) | `../snap/snapcraft.yaml` | Snap Store (see `docs/deploy/snap_store_checklist.md`) |
 
 All of them build with `build.sh` and install with `install.sh`, so every package has the same layout:
 

@@ -89,7 +89,7 @@ Stopping or restarting the service ends running jobs (they live in its cgroup); 
 - `kaaryasoochi-server.service`: the user unit, installed to `/usr/lib/systemd/user`.
 - `kaaryasoochi`: the launcher. On first launch it enables the unit. Each launch it starts the unit if needed, restarts it if an upgrade replaced the running binary, then opens the UI.
 
-A snap cannot ship a user unit, so for the snap the launcher writes one to `~/.config/systemd/user` with `ExecStart=/snap/bin/kaaryasoochi.server`. Snap daemons were not used because they are system services running as root, and user-scoped snap daemons are still experimental in snapd.
+A snap cannot ship a user unit, so for the snap the launcher writes one to `~/.config/systemd/user` with `ExecStart=/snap/bin/kaaryasoochi.server`. Snap daemons were not used because they are system services running as root, and user-scoped snap daemons are still experimental in snapd. The snap is classic (jobs need the host's programs and files) and ships the browser UI, which the launcher opens, because a classic snap cannot bundle WebKitGTK.
 
 ### Running commands
 

@@ -4,26 +4,41 @@
 name: kaaryasoochi
 base: core24
 version: '0.1.0'
+title: Kaaryasoochi
 summary: Schedule and manage cron-style jobs
 description: |
-  Kaaryasoochi is a cron-style job scheduler with a WebKitGTK desktop UI
-  and a built-in server backend. Create jobs, set cron-style recurrence
-  schedules, view run history, and manage jobs across timezones.
+  Kaaryasoochi schedules commands and scripts the way cron does, with a web
+  UI to create jobs, pick schedules and read each run's output.
 
-  Features:
-  - Cron-style and one-shot job scheduling
-  - Full run history with status tracking
-  - Per-job timezone support
-  - i18n: English, Tamil, Malayalam, Telugu, Hindi, Sanskrit, Urdu
+  - One-shot, interval and full crontab schedules, with a live preview
+  - Run history with exit codes and output; a notification when a job fails
+  - Retries, timeouts and per-job time zones
+  - Jobs missed while the computer was off run once when it is back
+  - English, Tamil, Malayalam, Telugu, Hindi, Sanskrit and Urdu
 
   Jobs are run by a per-user server, a systemd user service that runs as
-  you (never as root). Opening the app installs and starts it:
-  ~/.config/systemd/user/kaaryasoochi-server.service.
+  you, never as root. Opening Kaaryasoochi installs and starts it
+  (~/.config/systemd/user/kaaryasoochi-server.service) and opens the UI in
+  your browser at http://127.0.0.1:8080. It keeps running jobs after the
+  browser is closed. To run jobs at boot without logging in:
+  sudo loginctl enable-linger $USER
 
-# The server runs the user's own commands and scripts on the host, which strict confinement
-# cannot allow. Classic needs Snap Store approval before it can be released.
+  Operator tool (list accounts, reset a password): kaaryasoochi.admin
+license: MIT
+contact: https://github.com/enhariharan/kaaryasoochi/issues
+issues: https://github.com/enhariharan/kaaryasoochi/issues
+source-code: https://github.com/enhariharan/kaaryasoochi
+website: https://github.com/enhariharan/kaaryasoochi
+icon: snap/gui/kaaryasoochi.png
+
+# The server runs the user's own commands and scripts on the host, with the host's tools, which
+# strict confinement cannot allow. Classic needs Snap Store approval (docs/deploy).
 confinement: classic
-grade: devel
+grade: stable
+
+platforms:
+  amd64:
+  arm64:
 
 apps:
   kaaryasoochi:
@@ -32,61 +47,41 @@ apps:
       # The launcher writes a systemd user unit whose ExecStart is this command.
       KAARYASOOCHI_SERVER_EXEC: /snap/bin/kaaryasoochi.server
 
-  # Run by the user unit, as the user. Not a snap daemon: those are system services run as root.
+  # Run by that user unit, as the user. Not a snap daemon: those are system services run as root.
   server:
     command: usr/bin/kaaryasoochi-server
 
+  admin:
+    command: usr/bin/kaaryasoochi-admin
+
 parts:
-  app:
-    plugin: rust
+  kaaryasoochi:
+    plugin: nil
+    # Build what is committed: a plain `source: .` would also copy target/ (tens of GB).
     source: .
+    source-type: git
+    build-attributes:
+      # Point the binaries at core24's loader and libraries, not the host's.
+      - enable-patchelf
     build-packages:
-      - libwebkit2gtk-4.1-dev
-      - libgtk-3-dev
+      # Versioned Ubuntu toolchain; 1.97 is the one with a packaged wasm32 standard library.
+      - cargo-1.97
+      - rustc-1.97
+      - libstd-rust-1.97-dev-wasm32
+      - lld
+      - pkgconf
       - libssl-dev
-      - pkg-config
-      - curl
-      - libsoup-3.0-dev
-      - libjavascriptcoregtk-4.1-dev
-      - libxdo-dev
-    stage-packages:
-      - libwebkit2gtk-4.1-0
-      - libgtk-3-0
-      - libssl3
+      - zlib1g-dev
       - ca-certificates
-      - libxdo3
     override-build: |
-      set -eu
-
-      # Ensure cargo bin is on PATH (plugin: rust sets up Rust but not ~/.cargo/bin)
-      export PATH="$HOME/.cargo/bin:$PATH"
-
-      # Install dioxus-cli at the pinned version
-      cargo install dioxus-cli --version 0.7.9 --locked
-
-      # Build from crates/app where Dioxus.toml lives
-      cd "$SNAPCRAFT_PART_BUILD/crates/app"
-      KAARYASOOCHI_SERVER_URL=http://127.0.0.1:8080 \
-        dx build --desktop --release
-
-      BUILD="$SNAPCRAFT_PART_BUILD/target/dx/kaaryasoochi-app/release"
-
-      # Desktop app: binary + hashed assets must stay together
-      mkdir -p "$SNAPCRAFT_PART_INSTALL/usr/lib/kaaryasoochi/app"
-      cp -r "$BUILD/linux/app/." \
-            "$SNAPCRAFT_PART_INSTALL/usr/lib/kaaryasoochi/app/"
-
-      # Server: binary + web public (server cds here to serve static files)
-      mkdir -p "$SNAPCRAFT_PART_INSTALL/usr/lib/kaaryasoochi/web"
-      cp "$BUILD/web/server" \
-         "$SNAPCRAFT_PART_INSTALL/usr/lib/kaaryasoochi/web/server"
-      cp -r "$BUILD/web/public" \
-            "$SNAPCRAFT_PART_INSTALL/usr/lib/kaaryasoochi/web/public"
-
-      # Launcher, server wrapper and the systemd user unit the launcher installs
-      COMMON="$SNAPCRAFT_PART_BUILD/packaging/common"
-      install -Dm755 "$COMMON/kaaryasoochi" "$SNAPCRAFT_PART_INSTALL/usr/bin/kaaryasoochi"
-      install -Dm755 "$COMMON/kaaryasoochi-server" \
-                     "$SNAPCRAFT_PART_INSTALL/usr/bin/kaaryasoochi-server"
-      install -Dm644 "$COMMON/kaaryasoochi-server.service" \
-                     "$SNAPCRAFT_PART_INSTALL/usr/lib/systemd/user/kaaryasoochi-server.service"
+      export PATH="/usr/lib/rust-1.97/bin:$PATH"
+      # The browser UI: the WebKitGTK window cannot be bundled in a classic snap (its helper
+      # processes are looked up at the host's paths), and the server serves the UI itself.
+      packaging/build.sh --web
+      packaging/install.sh "$CRAFT_PART_INSTALL" /usr
+    # The launcher entry is snap/gui/kaaryasoochi.desktop.
+    prime:
+      - usr/bin
+      - usr/lib/kaaryasoochi
+      - usr/lib/systemd/user
+      - usr/share/metainfo

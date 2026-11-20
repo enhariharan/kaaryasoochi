@@ -134,4 +134,10 @@ if [ -x "$lib/app/kaaryasoochi-app" ]; then
   cd "$lib/app"
   exec ./kaaryasoochi-app "$@"
 fi
-exec xdg-open "http://127.0.0.1:$port/"
+url="http://127.0.0.1:$port/"
+if command -v xdg-open >/dev/null 2>&1; then
+  exec xdg-open "$url"
+elif command -v gio >/dev/null 2>&1; then
+  exec gio open "$url"
+fi
+echo "Kaaryasoochi is running: open $url in your browser."
