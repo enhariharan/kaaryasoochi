@@ -36,12 +36,15 @@
     ```
     This produces `kaaryasoochi_<version>_amd64.snap`. `snapcraft pack --use-lxd --debug` opens a shell in the container on failure.
 - [ ] arm64: `snapcraft remote-build` (builds on Launchpad), or build on an arm64 machine.
-- [ ] After changing `snapcraft.yaml`: `snapcraft clean --use-lxd`
+- [ ] Before every rebuild (new commits, or a changed `snapcraft.yaml`): `snapcraft clean --use-lxd`.
+    snapcraft does not notice new commits in the `source-type: git` part; without the clean it repacks
+    the previous build in a few seconds.
 
 ## Local install and smoke test
 
 - [ ] `sudo snap install --classic --dangerous kaaryasoochi_*.snap`
-- [ ] `kaaryasoochi`: the browser opens the sign-up page at `http://127.0.0.1:8080`
+- [ ] `kaaryasoochi`: the browser opens the sign-up page at `http://127.0.0.1:8080`. Without a desktop
+    session (over SSH) it prints that URL instead.
 - [ ] `systemctl --user status kaaryasoochi-server` shows the unit active, running `/snap/kaaryasoochi/<rev>/usr/lib/kaaryasoochi/web/server`
 - [ ] `ps -o user= -p "$(systemctl --user show -p MainPID --value kaaryasoochi-server)"` prints your user, not root
 - [ ] Create a job that uses a host tool (e.g. `rsync --version` or a script in your home); "Run now" succeeds and shows its output
