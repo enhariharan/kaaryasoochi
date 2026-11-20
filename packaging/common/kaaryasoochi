@@ -9,7 +9,8 @@
 #   2. enables it on the first launch only, so the scheduler keeps running after the window closes
 #      and starts at every login; a later `systemctl --user disable` is respected;
 #   3. starts it, or restarts it if it is still running a binary an upgrade has replaced;
-#   4. opens the desktop window, or the web UI in the default browser if no window is installed.
+#   4. opens the desktop window, or the web UI in the default browser if no window is installed,
+#      printing its URL when no browser can be opened (no desktop session, an SSH login).
 # Without a systemd user manager it starts the server in the background instead.
 #
 # PORT (default 8080) must match the server URL the desktop window was built for.
@@ -135,9 +136,11 @@ if [ -x "$lib/app/kaaryasoochi-app" ]; then
   exec ./kaaryasoochi-app "$@"
 fi
 url="http://127.0.0.1:$port/"
-if command -v xdg-open >/dev/null 2>&1; then
-  exec xdg-open "$url"
-elif command -v gio >/dev/null 2>&1; then
-  exec gio open "$url"
+# Without a desktop session the openers are missing or fail (gio: "Operation not supported").
+if command -v xdg-open >/dev/null 2>&1 && xdg-open "$url" 2>/dev/null; then
+  exit 0
+fi
+if command -v gio >/dev/null 2>&1 && gio open "$url" 2>/dev/null; then
+  exit 0
 fi
 echo "Kaaryasoochi is running: open $url in your browser."
