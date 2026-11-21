@@ -170,10 +170,12 @@ a.ibtn { text-decoration:none; color:inherit; }
     z-index:200; box-shadow:0 2px 8px rgba(0,0,0,.18);
 }
 .topbar .ibtn-tt { bottom:auto; top:calc(100% + 5px); }
-/* Tooltips are wider than their items. In the top bar, whose rows hug the end edge, each hangs
-   from its item's end toward the start (the first item's toward the end), so none leaves the window. */
-.topbar .ibtn-tt { inset-inline-start:auto; margin-inline:0; }
-.topbar nav > :first-child .ibtn-tt { inset-inline-start:0; inset-inline-end:auto; }
+/* The auto margins above center a tooltip only while it fits its button; a wider one starts at the
+   button's start edge, and near the end of the window it sticks out and adds a horizontal scrollbar
+   (which also takes the height of the 100vh layout, so a vertical one follows). The top bar, whose
+   rows hug the end edge, and the floating button sit at the end, so their tooltips hang from the
+   button's end edge toward the start instead. */
+.topbar .ibtn-tt, .fab .ibtn-tt { inset-inline-start:auto; margin-inline:0; }
 
 /* text-only: hide icon and key */
 [data-display="text_only"] .ibtn-icon { display:none; }
