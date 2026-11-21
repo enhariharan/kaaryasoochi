@@ -75,6 +75,8 @@ parts:
       - ca-certificates
     override-build: |
       export PATH="/usr/lib/rust-1.97/bin:$PATH"
+      # Limit compiler parallelism to stay within the container's 8 GiB memory cap.
+      export CARGO_BUILD_JOBS=3
       # The browser UI: the WebKitGTK window cannot be bundled in a classic snap (its helper
       # processes are looked up at the host's paths), and the server serves the UI itself.
       packaging/build.sh --web
