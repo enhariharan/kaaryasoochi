@@ -20,8 +20,8 @@ optdepends=('libnotify: notification when a job fails'
 options=('!lto' '!debug')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz"
         "$url/releases/download/v$pkgver/$pkgname-$pkgver-vendor.tar.xz")
-sha256sums=('SKIP'
-            'SKIP')
+sha256sums=('9d96004ffcaeeda1354245edbf09e3ee5b5fd297334d657bf41d8c8089f55845'
+            'a85b6bd31267f7a9e7e9e1f8a5724384fb7f48fafb0ea225937f1958e28b4415')
 
 prepare() {
   ln -sfn "$srcdir/vendor" "$srcdir/$pkgname-$pkgver/vendor"

@@ -26,7 +26,7 @@ pkgbase = kaaryasoochi
 	options = !debug
 	source = kaaryasoochi-0.1.0.tar.gz::https://github.com/enhariharan/kaaryasoochi/archive/v0.1.0.tar.gz
 	source = https://github.com/enhariharan/kaaryasoochi/releases/download/v0.1.0/kaaryasoochi-0.1.0-vendor.tar.xz
-	sha256sums = SKIP
-	sha256sums = SKIP
+	sha256sums = 9d96004ffcaeeda1354245edbf09e3ee5b5fd297334d657bf41d8c8089f55845
+	sha256sums = a85b6bd31267f7a9e7e9e1f8a5724384fb7f48fafb0ea225937f1958e28b4415
 
 pkgname = kaaryasoochi
