@@ -78,9 +78,13 @@ fn main() {
             let window = WindowBuilder::new()
                 .with_title(title)
                 .with_inner_size(LogicalSize::new(WINDOW_WIDTH, WINDOW_HEIGHT));
-            dioxus::LaunchBuilder::new()
-                .with_cfg(Config::new().with_window(window))
-                .launch(App);
+            let cfg = Config::new().with_window(window);
+            // No menu bar. On Linux Dioxus adds Window and Edit menus that this app does not use:
+            // WebKitGTK handles the editing shortcuts itself (the Edit items only replay them via
+            // xdo, on X11). macOS keeps its menu, which is where Cmd+C/Cmd+V come from there.
+            #[cfg(target_os = "linux")]
+            let cfg = cfg.with_menu(None);
+            dioxus::LaunchBuilder::new().with_cfg(cfg).launch(App);
         }
         #[cfg(not(feature = "desktop"))]
         dioxus::launch(App);
@@ -88,9 +92,9 @@ fn main() {
 }
 
 /// Default size of the desktop window, in logical pixels (the title bar is extra). GTK's own
-/// default, 800×600, made the login page scroll. Of 700 px the menu bar takes 27, leaving 673 for
-/// the page: the login page is 583 px tall at any width (651 with the error line after a failed
-/// attempt), and the dashboard 520 px with six jobs (two rows of a three-column grid at 1024 px).
+/// default, 800×600, made the login page scroll. The page gets all 700 px (there is no menu bar):
+/// the login page is 583 px tall at any width (651 with the error line after a failed attempt),
+/// and the dashboard 520 px with six jobs (two rows of a three-column grid at 1024 px).
 #[cfg(feature = "desktop")]
 const WINDOW_WIDTH: f64 = 1024.0;
 #[cfg(feature = "desktop")]
@@ -144,41 +148,6 @@ fn App() -> Element {
             l.dir(),
             l.code()
         ));
-    });
-
-    // Hide the GTK application menu bar (Window / Edit) that WebKitGTK injects automatically.
-    // Must run after GTK initialises, so a use_effect (post-mount) is the right place.
-    #[cfg(all(target_os = "linux", not(any(feature = "web", feature = "server"))))]
-    use_effect(|| unsafe {
-        use std::ffi::c_void;
-        use std::os::raw::{c_char, c_int, c_uint};
-        extern "C" {
-            fn gtk_css_provider_new() -> *mut c_void;
-            fn gtk_css_provider_load_from_data(
-                p: *mut c_void,
-                data: *const c_char,
-                len: c_int,
-                err: *mut c_void,
-            );
-            fn gdk_screen_get_default() -> *mut c_void;
-            fn gtk_style_context_add_provider_for_screen(
-                screen: *mut c_void,
-                provider: *mut c_void,
-                priority: c_uint,
-            );
-        }
-        let css = b"menubar{display:none}\0";
-        let p = gtk_css_provider_new();
-        gtk_css_provider_load_from_data(
-            p,
-            css.as_ptr() as *const c_char,
-            (css.len() - 1) as c_int,
-            std::ptr::null_mut(),
-        );
-        let screen = gdk_screen_get_default();
-        if !screen.is_null() {
-            gtk_style_context_add_provider_for_screen(screen, p, 800);
-        }
     });
 
     rsx! {
