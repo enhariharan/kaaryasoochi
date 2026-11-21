@@ -6,6 +6,8 @@ name = "kaaryasoochi-admin"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+authors.workspace = true
+repository.workspace = true
 description = "Operator tool: list accounts and reset a password from the command line"
 
 [[bin]]

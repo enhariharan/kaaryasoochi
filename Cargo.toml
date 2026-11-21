@@ -11,6 +11,8 @@ exclude = ["vendor"]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+authors = ["Hariharan Narayanan"]
+repository = "https://github.com/enhariharan/kaaryasoochi"
 
 [workspace.dependencies]
 chrono = { version = "0.4", default-features = false, features = ["std", "clock", "serde", "wasmbind"] }

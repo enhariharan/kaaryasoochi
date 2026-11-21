@@ -34,6 +34,8 @@ enum Route {
     JobEdit { id: i32 },
     #[route("/settings")]
     Settings {},
+    #[route("/about")]
+    About {},
 }
 
 fn main() {
@@ -184,7 +186,7 @@ fn Shell() -> Element {
 
     // Global keyboard shortcuts. Registered once per mount; a flag prevents double-binding on
     // re-mount. Keys are ignored while any input, textarea or select has focus.
-    // Sequences: `g h` → Home, `g s` → Settings.  Singles: `n` → new job, `?` → help.
+    // Sequences: `g h` → Home, `g s` → Settings, `g a` → About.  Singles: `n` → new job, `?` → help.
     use_future(move || async move {
         let mut e = document::eval(
             r#"
@@ -223,6 +225,9 @@ fn Shell() -> Element {
                 }
                 "g:s" => {
                     let _ = nav.push(Route::Settings {});
+                }
+                "g:a" => {
+                    let _ = nav.push(Route::About {});
                 }
                 ":n" => {
                     let _ = nav.push(Route::JobNew {});
@@ -286,6 +291,7 @@ fn Shell() -> Element {
             nav {
                 ILink { to: Route::Home {}, icon: icon_home(), label: state::t("home.title"), hotkey: "g h" }
                 ILink { to: Route::Settings {}, icon: icon_settings(), label: state::t("settings.title"), hotkey: "g s" }
+                ILink { to: Route::About {}, icon: icon_info(), label: state::t("about.title"), hotkey: "g a" }
                 IBtn { icon: icon_logout(), label: state::t("auth.logout"), hotkey: "Alt+Q",
                     class: "link", accesskey: "q", aria_keyshortcuts: "Alt+q",
                     onclick: move |_| {
@@ -347,6 +353,7 @@ fn HotkeyHelp(open: Signal<bool>) -> Element {
                         tr { td { kbd { "⌫" } } td { {state::t("picker.up")} } }
 
                         tr { class: "section-head", td { colspan: 2, "" } }
+                        tr { td { kbd { "g" } " " kbd { "a" } } td { {state::t("about.title")} } }
                         tr { td { kbd { "?" } } td { {state::t("hotkeys.title")} } }
                     }
                 }

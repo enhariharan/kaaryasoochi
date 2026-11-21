@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Hariharan Narayanan
 
+mod about;
 mod auth;
 mod forgot;
 mod home;
 mod job;
 mod settings;
 
+pub use about::About;
 pub use auth::{Login, Register};
 pub use forgot::Forgot;
 pub use home::Home;
