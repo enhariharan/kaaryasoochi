@@ -71,9 +71,30 @@ fn main() {
             g_set_prgname(name.as_ptr() as *const c_char);
             gdk_set_program_class(name.as_ptr() as *const c_char);
         }
+        #[cfg(feature = "desktop")]
+        {
+            use dioxus::desktop::{Config, LogicalSize, WindowBuilder};
+            let title = dioxus::cli_config::app_title().unwrap_or_else(|| "Kaaryasoochi".into());
+            let window = WindowBuilder::new()
+                .with_title(title)
+                .with_inner_size(LogicalSize::new(WINDOW_WIDTH, WINDOW_HEIGHT));
+            dioxus::LaunchBuilder::new()
+                .with_cfg(Config::new().with_window(window))
+                .launch(App);
+        }
+        #[cfg(not(feature = "desktop"))]
         dioxus::launch(App);
     }
 }
+
+/// Default size of the desktop window, in logical pixels (the title bar is extra). GTK's own
+/// default, 800×600, made the login page scroll. Of 700 px the menu bar takes 27, leaving 673 for
+/// the page: the login page is 583 px tall at any width (651 with the error line after a failed
+/// attempt), and the dashboard 520 px with six jobs (two rows of a three-column grid at 1024 px).
+#[cfg(feature = "desktop")]
+const WINDOW_WIDTH: f64 = 1024.0;
+#[cfg(feature = "desktop")]
+const WINDOW_HEIGHT: f64 = 700.0;
 
 #[component]
 fn App() -> Element {
