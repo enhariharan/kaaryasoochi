@@ -6,7 +6,9 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::{ButtonDisplay, DateFormat, Language, Layout, Repeat, RunMode, TabOrientation, Theme, TimeFormat};
+use crate::{
+    ButtonDisplay, DateFormat, Language, Layout, Repeat, RunMode, TabOrientation, Theme, TimeFormat,
+};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UserView {

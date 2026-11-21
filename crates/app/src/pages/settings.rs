@@ -8,7 +8,9 @@ use kaaryasoochi_core::limits::{
     SECRET_QUESTION_MAX, SECRET_QUESTION_MIN,
 };
 use kaaryasoochi_core::timezone;
-use kaaryasoochi_core::{ButtonDisplay, DateFormat, Language, Layout, TabOrientation, Theme, TimeFormat};
+use kaaryasoochi_core::{
+    ButtonDisplay, DateFormat, Language, Layout, TabOrientation, Theme, TimeFormat,
+};
 
 use super::{clean_err, ErrorBanner, IBtn, PasswordField, Pick};
 use crate::api;

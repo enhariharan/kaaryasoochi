@@ -146,11 +146,11 @@ async fn run(args: Args) -> Result<(), String> {
     }
 }
 
+type CreateJobFields = (String, String, String, String, DateTime<Utc>, u32);
+
 /// Parses the flags that follow `create-job <username>`.
 /// Returns `(title, script_path, script_args, working_dir, first_run, timeout_secs)`.
-fn parse_create_job_flags(
-    tokens: &[&str],
-) -> Result<(String, String, String, String, DateTime<Utc>, u32), String> {
+fn parse_create_job_flags(tokens: &[&str]) -> Result<CreateJobFields, String> {
     let (mut title, mut script, mut args, mut dir, mut first_run_str, mut timeout) = (
         String::new(),
         String::new(),

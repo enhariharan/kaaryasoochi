@@ -4,7 +4,9 @@
 use kaaryasoochi_core::dto::UserSettings;
 use kaaryasoochi_core::limits::PAGE_SIZE_OPTIONS;
 use kaaryasoochi_core::timezone::{self, Tz};
-use kaaryasoochi_core::{ButtonDisplay, DateFormat, Language, Layout, TabOrientation, Theme, TimeFormat};
+use kaaryasoochi_core::{
+    ButtonDisplay, DateFormat, Language, Layout, TabOrientation, Theme, TimeFormat,
+};
 use sea_orm::{prelude::*, ActiveValue::Set};
 
 use crate::entity::user_settings as us;

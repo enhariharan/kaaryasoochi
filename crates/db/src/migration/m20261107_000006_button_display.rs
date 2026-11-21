@@ -6,13 +6,10 @@ use sea_orm_migration::prelude::*;
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
-const UP: &[&str] = &[
-    "ALTER TABLE user_settings ADD COLUMN button_display TEXT NOT NULL DEFAULT 'icon_text'",
-];
+const UP: &[&str] =
+    &["ALTER TABLE user_settings ADD COLUMN button_display TEXT NOT NULL DEFAULT 'icon_text'"];
 
-const DOWN: &[&str] = &[
-    "ALTER TABLE user_settings DROP COLUMN button_display",
-];
+const DOWN: &[&str] = &["ALTER TABLE user_settings DROP COLUMN button_display"];
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {

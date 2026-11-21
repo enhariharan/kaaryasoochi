@@ -45,10 +45,21 @@ pub fn Home() -> Element {
 
     // Alt+0 → Default category; Alt+1…9 → non-default categories left to right.
     let mut nd: u8 = 0;
-    let cat_keys: Vec<String> = cats.iter().map(|c| {
-        if c.name == DEFAULT_CATEGORY { "0".to_string() }
-        else { nd += 1; if nd <= 9 { nd.to_string() } else { String::new() } }
-    }).collect();
+    let cat_keys: Vec<String> = cats
+        .iter()
+        .map(|c| {
+            if c.name == DEFAULT_CATEGORY {
+                "0".to_string()
+            } else {
+                nd += 1;
+                if nd <= 9 {
+                    nd.to_string()
+                } else {
+                    String::new()
+                }
+            }
+        })
+        .collect();
 
     rsx! {
         div { class: "home {orientation}",

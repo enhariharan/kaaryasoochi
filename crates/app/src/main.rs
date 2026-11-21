@@ -126,23 +126,35 @@ fn App() -> Element {
     // Hide the GTK application menu bar (Window / Edit) that WebKitGTK injects automatically.
     // Must run after GTK initialises, so a use_effect (post-mount) is the right place.
     #[cfg(all(target_os = "linux", not(any(feature = "web", feature = "server"))))]
-    use_effect(|| {
-        unsafe {
-            use std::ffi::c_void;
-            use std::os::raw::{c_char, c_int, c_uint};
-            extern "C" {
-                fn gtk_css_provider_new() -> *mut c_void;
-                fn gtk_css_provider_load_from_data(p: *mut c_void, data: *const c_char, len: c_int, err: *mut c_void);
-                fn gdk_screen_get_default() -> *mut c_void;
-                fn gtk_style_context_add_provider_for_screen(screen: *mut c_void, provider: *mut c_void, priority: c_uint);
-            }
-            let css = b"menubar{display:none}\0";
-            let p = gtk_css_provider_new();
-            gtk_css_provider_load_from_data(p, css.as_ptr() as *const c_char, (css.len() - 1) as c_int, std::ptr::null_mut());
-            let screen = gdk_screen_get_default();
-            if !screen.is_null() {
-                gtk_style_context_add_provider_for_screen(screen, p, 800);
-            }
+    use_effect(|| unsafe {
+        use std::ffi::c_void;
+        use std::os::raw::{c_char, c_int, c_uint};
+        extern "C" {
+            fn gtk_css_provider_new() -> *mut c_void;
+            fn gtk_css_provider_load_from_data(
+                p: *mut c_void,
+                data: *const c_char,
+                len: c_int,
+                err: *mut c_void,
+            );
+            fn gdk_screen_get_default() -> *mut c_void;
+            fn gtk_style_context_add_provider_for_screen(
+                screen: *mut c_void,
+                provider: *mut c_void,
+                priority: c_uint,
+            );
+        }
+        let css = b"menubar{display:none}\0";
+        let p = gtk_css_provider_new();
+        gtk_css_provider_load_from_data(
+            p,
+            css.as_ptr() as *const c_char,
+            (css.len() - 1) as c_int,
+            std::ptr::null_mut(),
+        );
+        let screen = gdk_screen_get_default();
+        if !screen.is_null() {
+            gtk_style_context_add_provider_for_screen(screen, p, 800);
         }
     });
 
@@ -174,7 +186,8 @@ fn Shell() -> Element {
     // re-mount. Keys are ignored while any input, textarea or select has focus.
     // Sequences: `g h` → Home, `g s` → Settings.  Singles: `n` → new job, `?` → help.
     use_future(move || async move {
-        let mut e = document::eval(r#"
+        let mut e = document::eval(
+            r#"
             (function() {
                 if (window._ksRegistered) return;
                 window._ksRegistered = true;
@@ -201,13 +214,22 @@ fn Shell() -> Element {
                     dioxus.send(':' + ev.key);
                 });
             })();
-        "#);
+        "#,
+        );
         while let Ok(msg) = e.recv::<String>().await {
             match msg.as_str() {
-                "g:h" => { let _ = nav.push(Route::Home {}); }
-                "g:s" => { let _ = nav.push(Route::Settings {}); }
-                ":n" => { let _ = nav.push(Route::JobNew {}); }
-                ":?" => { help_open.set(!help_open()); }
+                "g:h" => {
+                    let _ = nav.push(Route::Home {});
+                }
+                "g:s" => {
+                    let _ = nav.push(Route::Settings {});
+                }
+                ":n" => {
+                    let _ = nav.push(Route::JobNew {});
+                }
+                ":?" => {
+                    help_open.set(!help_open());
+                }
                 _ => {}
             }
         }
