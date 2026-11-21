@@ -10,14 +10,14 @@ description: |
   Kaaryasoochi schedules commands and scripts the way cron does, with a web
   UI to create jobs, pick schedules and read each run's output.
 
-  - One-shot, interval and full crontab schedules, with a live preview
-  - Run history with exit codes and output; a notification when a job fails
-  - Retries, timeouts and per-job time zones
-  - Jobs missed while the computer was off run once when it is back
-  - English, Tamil, Malayalam, Telugu, Hindi, Sanskrit and Urdu
+  - One-time, interval and full crontab schedules, with a live preview.
+  - Run history with exit codes and output; a notification when a job fails.
+  - Retries, timeouts and per-job time zones.
+  - Jobs missed while the computer was off run once when it is back.
+  - i18n supported: English, Tamil, Malayalam, Telugu, Hindi, Sanskrit and Urdu.
 
-  Jobs are run by a per-user server, a systemd user service that runs as
-  you, never as root. Opening Kaaryasoochi installs and starts it
+  Jobs are run by a per-user server, a systemd user service.
+  Opening Kaaryasoochi installs and starts it
   (~/.config/systemd/user/kaaryasoochi-server.service) and opens the UI in
   your browser at http://127.0.0.1:8080. It keeps running jobs after the
   browser is closed. To run jobs at boot without logging in:
@@ -25,7 +25,8 @@ description: |
 
   Operator tool (list accounts, reset a password): kaaryasoochi.admin
 license: MIT
-contact: https://github.com/enhariharan/kaaryasoochi/issues
+contact: https://github.com/enhariharan
+donation: https://github.com/sponsors/enhariharan
 issues: https://github.com/enhariharan/kaaryasoochi/issues
 source-code: https://github.com/enhariharan/kaaryasoochi
 website: https://github.com/enhariharan/kaaryasoochi
