@@ -150,6 +150,44 @@ fn App() -> Element {
         ));
     });
 
+    // Keep a shown tooltip inside the window. CSS anchors each tooltip to one edge of its button,
+    // which cannot fit every layout: when the top bar wraps on a phone, its first link sits at the
+    // start edge and its tooltip would hang past it. While a tooltip is shown (hover, focus or
+    // touch), shift it back by the amount it sticks out; clear the shift once it hides, so a hidden
+    // tooltip never adds scroll overflow after the layout changes.
+    use_effect(|| {
+        let _ = document::eval(
+            r#"(function(){
+                if(window._ttFitRegistered)return;
+                window._ttFitRegistered=true;
+                function tip(e){
+                    var b=e.target&&e.target.closest?e.target.closest('.ibtn'):null;
+                    return b?b.querySelector('.ibtn-tt'):null;
+                }
+                function show(e){
+                    var tt=tip(e);
+                    if(!tt)return;
+                    clearTimeout(tt._ksReset);
+                    tt.style.transform='';
+                    var r=tt.getBoundingClientRect(),w=document.documentElement.clientWidth,m=4,dx=0;
+                    if(r.left<m)dx=m-r.left;
+                    else if(r.right>w-m)dx=w-m-r.right;
+                    if(dx)tt.style.transform='translateX('+dx+'px)';
+                }
+                function hide(e){
+                    var tt=tip(e);
+                    if(tt&&tt.style.transform)tt._ksReset=setTimeout(function(){tt.style.transform='';},200);
+                }
+                document.addEventListener('mouseover',show);
+                document.addEventListener('focusin',show);
+                document.addEventListener('touchstart',show,{passive:true});
+                document.addEventListener('mouseout',hide);
+                document.addEventListener('focusout',hide);
+                document.addEventListener('touchend',hide,{passive:true});
+            })();"#,
+        );
+    });
+
     rsx! {
         document::Title { "Kaaryasoochi" }
         document::Meta { name: "viewport", content: "width=device-width, initial-scale=1" }
