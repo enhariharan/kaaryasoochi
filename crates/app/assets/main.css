@@ -11,8 +11,8 @@ main { max-width: 1100px; margin: 0 auto; padding: 1rem; }
 a { color: var(--accent); }
 .muted { color: var(--muted); } .center { text-align:center; padding:2rem; }
 .error { color: var(--danger); }
-.topbar { display:flex; justify-content:space-between; align-items:center; padding:.75rem 1rem; background:var(--card); border-bottom:1px solid var(--border); }
-.topbar nav { display:flex; gap:1rem; align-items:center; } .brand { font-weight:700; text-decoration:none; display:flex; align-items:center; gap:.45rem; }
+.topbar { display:flex; flex-wrap:wrap; gap:.5rem 1rem; justify-content:space-between; align-items:center; padding:.75rem 1rem; background:var(--card); border-bottom:1px solid var(--border); }
+.topbar nav { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.5rem 1rem; align-items:center; margin-inline-start:auto; } .brand { font-weight:700; text-decoration:none; display:flex; align-items:center; gap:.45rem; }
 .auth-logo { text-align:center; margin-bottom:.75rem; } .auth-logo img { width:72px; height:72px; display:block; margin:0 auto; }
 button, .button { font:inherit; padding:.5rem 1rem; border:1px solid var(--border); border-radius:8px; background:var(--card); color:var(--fg); cursor:pointer; text-decoration:none; display:inline-block; }
 button.primary { background:var(--accent); color:#fff; border-color:transparent; }
@@ -170,6 +170,10 @@ a.ibtn { text-decoration:none; color:inherit; }
     z-index:200; box-shadow:0 2px 8px rgba(0,0,0,.18);
 }
 .topbar .ibtn-tt { bottom:auto; top:calc(100% + 5px); }
+/* Tooltips are wider than their items. In the top bar, whose rows hug the end edge, each hangs
+   from its item's end toward the start (the first item's toward the end), so none leaves the window. */
+.topbar .ibtn-tt { inset-inline-start:auto; margin-inline:0; }
+.topbar nav > :first-child .ibtn-tt { inset-inline-start:0; inset-inline-end:auto; }
 
 /* text-only: hide icon and key */
 [data-display="text_only"] .ibtn-icon { display:none; }
